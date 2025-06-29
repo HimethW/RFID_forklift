@@ -105,3 +105,11 @@ bool Pin::state() {
             return false; // Invalid port
     }
 };
+
+bool Pin::is_low() {
+    return !state();
+};
+
+bool Pin::is_high() {
+    return state();
+};

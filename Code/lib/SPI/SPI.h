@@ -1,5 +1,5 @@
-#ifndef SPI_H_
-#define SPI_H_
+#ifndef SPI_H
+#define SPI_H
 
 #include "avr/io.h"
 #include "Pins.h"

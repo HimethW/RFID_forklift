@@ -20,6 +20,8 @@ class Pin {
         void toggle();
 
         bool state();
+        bool is_low();
+        bool is_high();
 
     private:
         uint8_t _port;
