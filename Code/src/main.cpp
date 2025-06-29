@@ -1,30 +1,42 @@
 #include <Arduino.h>
+#include <Pins.h>
+#include <SPI.h>
 
 #include <avr/io.h>
 #include <avr/delay.h>
-#include <avr/interrupt.h>
 
-#define MISO PB3
-#define MOSI PB2
-#define SCK  PB1
+Pin HW_MOSI(B, 2);
+Pin HW_MISO(B, 3);
+Pin HW_SCK(B, 1);
 
-// reset is digital 8, PB4
-// busy is digital 9, PB5
-// nss is digital 10, PB6
+SPI_Master myspi(HW_MOSI, HW_MISO, HW_SCK);
 
-void send_bytes(char* bytes, int length) {
+Pin RST(B, 4);  // Digital Pin 8
+Pin BUSY(B, 5); // Digital Pin 9
+Pin NSS(B, 6);  // Digital Pin 10
+
+Pin LED(C, 7);  // L LED
+/*
+void send_bytes(int* bytes, int length) {
   for (int i = 0; i < length; i++) {
     SPDR = bytes[i];
+    Serial.print(bytes[i]);
+    Serial.print(" (");
 
     while (!(SPSR & (1 << SPIF))) {
       ;
     }
-  }
-}
 
-void receive_bytes(char* buffer, int length) {
+    int rec_byte = SPDR;
+    Serial.print(rec_byte);
+    Serial.print(") ");
+  }
+  Serial.println("");
+}
+*/
+void receive_bytes(int* buffer, int length) {
   for (int i = 0; i < length; i++) {
-    SPDR = 0x00; // Send dummy byte to receive data
+    SPDR = 0x00;  // Send dummy byte to receive data
 
     while (!(SPSR & (1 << SPIF))) {
       ;
@@ -36,86 +48,98 @@ void receive_bytes(char* buffer, int length) {
 
 void setup() {
   Serial.begin(115200);
-  
+
   delay(2000);
   Serial.println("HELLO");
   delay(1000);
 
   PRR0 &= ~(1 << PRSPI);
 
-  DDRB |= (1 << DDB2) | (1 << DDB1); // Set MOSI, SCK as output
-  DDRB |= (1 << DDB4) || (1 << DDB6); // Set SS, RST as output
-  DDRB &= ~(1 << DDB5); // Set BUSY as input
-  DDRC |= (1 << DDC7); // Set LED as output
-  DDRB &= ~(1 << DDB3); // Set MISO as input
+  RST.set_output();
+  NSS.set_output();
+  BUSY.set_input();
+  
+  LED.set_output();
 
-  PORTB |= (1 << PB6); // Set NSS high (inactive)
-  SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0); // Enable SPI, Set as Master, Prescaler: Fosc/16
+  NSS.assert();  // Set NSS high (inactive)
+  
+  myspi.initialize();  // Initialize SPI
 
   _delay_ms(50);
 
   Serial.println("RESETTING");
 
-  PORTB &= ~(1 << PB4); // Set RST low to reset the device
+  RST.deassert();  // Set RST low to reset the device
   _delay_ms(100);
-  PORTB |= (1 << PB4); // Set RST high to release the device from reset
+  RST.assert();  // Set RST high to release the device from reset
   _delay_ms(100);
-  
+
   Serial.println("RESET DONE");
 }
 
 void loop() {
-  while (PINB & (1 << PB5)) {
+  Serial.println("waiting for busy to go low");
+  while (BUSY.state()) {
     // Wait for BUSY to go low
   }
+  Serial.println("busy is low");
 
-  PORTB &= ~(1 << PB6); // Set NSS low to select the device
+  NSS.deassert();  // Set NSS low to select the device
+  Serial.println("nss set to low");
 
-  char send_data[3] = {0x07, 0x10, 0x02};
-  send_bytes(send_data, 3);
+  uint8_t send_data[3] = { 0x07, 0x10, 0x02 };
+  myspi.send(send_data, 3);
 
-  _delay_ms(50);
+  Serial.println("data sent");
 
-  while (!(PINB & (1 << PB5))) {
+  Serial.println("waiting for busy to go high");
+  while (!BUSY.state()) {
     // Wait for BUSY to go high
   }
+  Serial.println("busy is high");
 
-  PORTB |= (1 << PB6); // Set NSS high to deselect the device
-
-  _delay_ms(50);
-
-  while (PINB & (1 << PB5)) {
+  NSS.assert();  // Set NSS high to deselect the device
+  Serial.println("nss set to high, waiting for busy to go low");
+  while (BUSY.state()) {
     // Wait for BUSY to go low again
   }
+  Serial.println("busy is low");
 
   _delay_ms(500);
   // SEND COMPLETE
+  Serial.println("send complete");
 
-  while (PINB & (1 << PB5)) {
+  while (BUSY.state()) {
     // Wait for BUSY to go low
   }
 
-  PORTB &= ~(1 << PB6); // Set NSS low to select the device
+  NSS.deassert();  // Set NSS low to select the device again
 
-  char receive_buffer[2];
-  receive_bytes(receive_buffer, 2);
+  uint8_t receive_buffer[2];
+  // receive_bytes(receive_buffer, 2);
+  myspi.receive(receive_buffer, 2);  // Receive 2 bytes 
 
   _delay_ms(50);
 
-  while (!(PINB & (1 << PB5))) {
+  while (!BUSY.state()) {
     // Wait for BUSY to go high
   }
 
-  PORTB |= (1 << PB6); // Set NSS high to deselect the device
+  NSS.assert();  // Set NSS high to deselect the device
 
-  while (PINB & (1 << PB5)) {
+  while (BUSY.state()) {
     // Wait for BUSY to go low again
   }
 
+  Serial.print("I RECEIVED ");
+  Serial.println(receive_buffer[1]);
+  Serial.println("!!!!!!!!!!!!!!!!");
+  delay(2000);
+
   if (receive_buffer[1] == 4) {
-    PORTC |= (1 << PC7); // Turn on LED
+    LED.assert();  // Turn on LED
     _delay_ms(1000);
-    PORTC &= ~(1 << PC7); // Turn off LED
+    LED.deassert();  // Turn off LED
     _delay_ms(1000);
   }
 
