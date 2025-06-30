@@ -86,11 +86,12 @@ class ISO14443A_PCD {
             }
         }
 
-        void receive_AC(uint8_t* receive_frame, uint8_t* uncollided_bytes) {
-            _receive_callback(receive_frame, 5);  // Receive UID bytes, we must read 5 bytes
+        void receive_AC(uint8_t* receive_buffer, uint8_t* uncollided_bytes) {
+            _receive_callback(receive_buffer, 5);  // Receive UID bytes, we must read 5 bytes
             uint8_t first_collision_pos = _collision_callback();
-            // Store into uncollided bytes the bytes that were not collided reading from receive_frame
+            // Store into uncollided bytes the bytes that were not collided reading from receive_buffer
         };
+
 
 
     private:
@@ -98,3 +99,5 @@ class ISO14443A_PCD {
         receive_callback _receive_callback;
         collision_callback _collision_callback;
 };
+
+#endif
