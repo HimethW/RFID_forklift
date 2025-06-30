@@ -2,6 +2,8 @@
 #include "avr/delay.h"
 #include "Pins.h"
 #include "SPI.h"
+#include "PN5180_Registers.h"
+#include "PN5180_Commands.h"
 #include "PN5180.h"
 
 PN5180::PN5180(
@@ -66,4 +68,9 @@ bool PN5180::transceive(bool send_or_receive, uint8_t* data, int length) {
     while (_BUSY.is_high()) { ; }
 
     return true;  // Return true if everything was successful
-}
+};
+
+bool PN5180::receive_response(uint8_t* response_buffer, int length) {
+    // Receive the response from the PN5180
+    return transceive(RECEIVE, response_buffer, length);
+};

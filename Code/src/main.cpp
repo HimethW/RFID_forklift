@@ -32,13 +32,12 @@ void setup() {
 }
 
 void loop() {
-
-  uint8_t send_data[3] = { 0x07, 0x10, 0x02 };
-  nfc.transceive(SEND, send_data, 3);  // Send 3 bytes
+  nfc.issue_command(READ_EEPROM, 0x10, 0x02);
   Serial.println("send complete");
 
   uint8_t receive_buffer[2];
-  nfc.transceive(RECEIVE, receive_buffer, 2);  // Receive 2 bytes
+  nfc.receive_response(receive_buffer, 2);  // Receive 2 bytes
+  // nfc.transceive(RECEIVE, receive_buffer, 2);  // Receive 2 bytes
   Serial.println("receive complete");
   
   Serial.print("I RECEIVED ");
