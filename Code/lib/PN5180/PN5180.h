@@ -1,9 +1,11 @@
+
 #ifndef PN5180_H
 #define PN5180_H
 
 #define SEND    0
 #define RECEIVE 1
 
+#include "Arduino.h"
 #include "avr/io.h"
 #include "avr/delay.h"
 #include "Pins.h"
@@ -36,8 +38,12 @@ class PN5180 {
             // Send the command over SPI
             return transceive(SEND, send_bytes, length);
         };
+        bool issue_command(uint8_t* command_bytes, uint8_t num_command_bytes);
 
-        bool receive_response(uint8_t* response_buffer, int length);
+        bool receive_command_response(uint8_t* response_buffer, int length);
+
+        bool transmit_rf(uint8_t valid_bits_last_byte, uint8_t num_bytes, uint8_t* bytes);
+        bool receive_rf(uint8_t* receive_buffer, uint8_t num_bytes, uint8_t* valid_bytes, uint8_t* valid_bits_last_byte);
 
     private:
         Pin _RST;

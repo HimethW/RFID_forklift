@@ -2,6 +2,7 @@
 #include <Pins.h>
 #include <SPI.h>
 #include <PN5180.h>
+#include <PN532.h>
 
 #include <avr/io.h>
 #include <avr/delay.h>
@@ -34,7 +35,7 @@ void setup() {
   Serial.println("send complete");
 
   uint8_t receive_buffer[2];
-  nfc.receive_response(receive_buffer, 2);  // Receive 2 bytes
+  nfc.receive_command_response(receive_buffer, 2);  // Receive 2 bytes
   Serial.println("receive complete");
   
   Serial.print("I RECEIVED ");
@@ -56,11 +57,11 @@ void loop() {
     Serial.println("LOAD_RF_CONFIG command issued");
   }
 
-  if (nfc.issue_command(RF_ON, 0x00)) {
-    Serial.println("RF_ON command issued");
-  }
+  // if (nfc.issue_command(RF_ON, 0x00)) {
+  //   Serial.println("RF_ON command issued");
+  // }
 
-  _delay_ms(500);
+  // _delay_ms(500);
 
   if (nfc.issue_command(WRITE_REGISTER_AND, REG_CRC_RX_CONFIG, 0xFE, 0xFF, 0xFF, 0xFF)) {
     Serial.println("WRITE_REGISTER_AND command issued, CRC RX turned off");
@@ -70,30 +71,31 @@ void loop() {
     Serial.println("WRITE_REGISTER_AND command issued, CRC TX turned off");
   }
   
-  if (nfc.issue_command(WRITE_REGISTER, REG_IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00)) {
-    Serial.println("IRQ_STATUS cleared");
-  }
+  // if (nfc.issue_command(WRITE_REGISTER, REG_IRQ_CLEAR, 0xFF, 0xFF, 0x0F, 0x00)) {
+  //   Serial.println("IRQ_STATUS cleared");
+  // }
 
-  if (nfc.issue_command(WRITE_REGISTER_AND, REG_SYSTEM_CONFIG, 0xF8, 0xFF, 0xFF, 0xFF)) {
-    Serial.println("IDLE state");
-  }
+  // if (nfc.issue_command(WRITE_REGISTER_AND, REG_SYSTEM_CONFIG, 0xF8, 0xFF, 0xFF, 0xFF)) {
+  //   Serial.println("IDLE state");
+  // }
 
-  if (nfc.issue_command(WRITE_REGISTER_OR, REG_SYSTEM_CONFIG, 0x03, 0x00, 0x00, 0x00)) {
-    Serial.println("Transceive state");
-  }
+  // if (nfc.issue_command(WRITE_REGISTER_OR, REG_SYSTEM_CONFIG, 0x03, 0x00, 0x00, 0x00)) {
+  //   Serial.println("Transceive state");
+  // }
 
-  if (nfc.issue_command(SEND_DATA, 0x07, 0x26)) {
-    Serial.println("REQA SENT");
-  }
-  
-  _delay_ms(1);
+  // if (nfc.issue_command(SEND_DATA, 0x07, 0x26)) {
+  //   Serial.println("REQA SENT");
+  // }
+  Serial.println("Transmitting REQA command");
+  uint8_t bytes[1] = {0x26};
+  nfc.transmit_rf(0x07, 1, bytes);
 
   if (nfc.issue_command(READ_DATA, 0x00)) {
     Serial.println("READ_DATA command issued");
   }
 
   uint8_t response_buffer[2];
-  if (nfc.receive_response(response_buffer, 2)) {
+  if (nfc.receive_command_response(response_buffer, 2)) {
     Serial.println("Response received");
     Serial.print("ATQA: ");
     for (int i = 0; i < 2; i++) {
