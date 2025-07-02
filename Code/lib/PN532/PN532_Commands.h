@@ -11,5 +11,6 @@
 
 #define RF_CONFIGURATION        0x32
 
+#define LIST_PASSIVE_TARGETS    0x4A
 
 #endif

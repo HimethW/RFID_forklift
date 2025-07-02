@@ -31,29 +31,41 @@ void setup() {
   }
 
   delay(100);
+
+  pn532.issue_command(GET_FIRMWARE_VERSION);
+  Serial.println("GET FIRMWARE COMMAND ISSUED");
+
+  uint8_t response[13];
+  if (pn532.receive_command_response(response, 13)) {
+    Serial.println("RESPONSE IS ");
+    for (int i = 0; i < 13; i++) {
+      Serial.print("0x");
+      Serial.print(response[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+  
 }
 
 void loop() {
-  pn532.issue_command(GET_FIRMWARE_VERSION);
-  Serial.println("GET_FIRMWARE_VERSION command issued");
-  
-  delay(100);
+  pn532.issue_command(LIST_PASSIVE_TARGETS, 0x01, 0x00);
+  Serial.println("ISSUED COMMAND TO READ");
 
-  uint8_t response[13];
-  bool got = pn532.receive_command_response(response, 13);
-
-  if (got) {
-    Serial.println("Response received:");
+  uint8_t response[20];
+  if (pn532.receive_command_response(response, 20)) {
+    for (int i = 0; i < 20; i++) {
+      Serial.print("0x");
+      if (response[i] < 0x0A) {
+        Serial.print("0");
+      }
+      Serial.print(response[i], HEX);
+      Serial.print(", ");
+    }
+    Serial.println();
   } else {
-    Serial.println("Failed to receive response. But here");
+    Serial.println("NO RESP");
   }
-
-  for (int i = 0; i < 13; i++) {
-    Serial.print("0x");
-    Serial.print(response[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
 
   delay(1500);
 }
