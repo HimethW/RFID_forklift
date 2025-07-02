@@ -16,8 +16,8 @@
 #include "avr/delay.h"
 #include "Pins.h"
 #include "SPI.h"
-#include "PN5180_Registers.h"
-#include "PN5180_Commands.h"
+#include "PN532_Commands.h"
+#include "Arduino.h"
 
 const uint8_t ACK_FRAME[6] = {PREAMBLE, STARTCODE1, STARTCODE2, 0x00, 0xFF, POSTAMBLE};
 const uint8_t NACK_FRAME[6] = {PREAMBLE, STARTCODE1, STARTCODE2, 0xFF, 0x00, POSTAMBLE};
@@ -35,19 +35,43 @@ class PN532 {
         
         template <typename PN532_Command, typename... PN532_Params>
         bool issue_command(PN532_Command opcode, PN532_Params... params) {
-            uint8_t send_bytes[] = {opcode, params...};
-            int length = sizeof(send_bytes) / sizeof(send_bytes[0]);
+            uint8_t data_bytes[] = {opcode, params...};
+            int length = sizeof(data_bytes) / sizeof(data_bytes[0]);
 
             // Create the normal information frame with TFI
             uint8_t modified_spi_frame[length + 9];
             modified_spi_frame[0] = DATA_WRITE;
-            make_normal_information_frame(modified_spi_frame + 1, TFI_HOST_TO_PN532, send_bytes, length);
+            make_normal_information_frame(modified_spi_frame + 1, TFI_HOST_TO_PN532, data_bytes, length);
 
             // Send the command over SPI
-            return send_bytes(modified_spi_frame, length + 9);
+            _NSS.deassert();
+            delay(5);
+
+            if (!send_bytes(modified_spi_frame, length + 9)) {
+                _NSS.assert();
+                return false;
+            }
+
+            _NSS.assert();
+            delay(5);
+            
+            if (!ready_to_respond()) {
+                return false; // If the PN532 is not ready to respond, return false
+            }
+
+            bool acked = check_ack();
+            
+            _NSS.deassert();
+
+            return acked;
         };
 
+        bool ready_to_respond();
+        bool check_ack();
+        
         bool receive_command_response(uint8_t* response_buffer, int length);
+
+        bool SAMConfig();
 
     private:
         Pin _NSS;
