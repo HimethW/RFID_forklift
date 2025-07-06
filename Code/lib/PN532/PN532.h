@@ -69,7 +69,11 @@ class PN532 {
         bool ready_to_respond();
         bool check_ack();
         
-        bool receive_command_response(uint8_t* response_buffer, int length);
+        bool receive_full_command_response(uint8_t* response_buffer, int length);
+
+        bool initiate_receive_partial_command_response(uint8_t* response_buffer, int length);
+        bool continue_receive_partial_command_response(uint8_t* response_buffer, int length);
+        void conclude_receive_partial_command_response();
 
         bool SAMConfig();
 

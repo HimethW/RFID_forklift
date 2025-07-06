@@ -94,7 +94,7 @@ bool PN532::check_ack() {
     return true;
 };
 
-bool PN532::receive_command_response(uint8_t* response_buffer, int length) {
+bool PN532::receive_full_command_response(uint8_t* response_buffer, int length) {
     if (!ready_to_respond()) {
         return false;
     }
@@ -117,13 +117,48 @@ bool PN532::receive_command_response(uint8_t* response_buffer, int length) {
     return true;
 };
 
+bool PN532::initiate_receive_partial_command_response(uint8_t* response_buffer, int length) {
+    if (!ready_to_respond()) {
+        return false;
+    }
+
+    _NSS.deassert();
+    delay(5);
+
+    // Send DATA_READ
+    uint8_t send_data[1] = {DATA_READ};
+    send_bytes(send_data, 1);
+
+    // Receive the response
+    if (!receive_bytes(response_buffer, length)) {
+        _NSS.assert();
+        return false; // Return false if receiving fails
+    }
+
+    // Return without re-asserting NSS
+    return true;
+};
+
+bool PN532::continue_receive_partial_command_response(uint8_t* response_buffer, int length) {
+    if (!receive_bytes(response_buffer, length)) {
+        _NSS.assert();
+        return false; // Return false if receiving fails
+    }
+
+    return true;
+};
+
+void PN532::conclude_receive_partial_command_response() {
+    _NSS.assert();
+}
+
 bool PN532::SAMConfig() {
     if (!issue_command(SAM_CONFIGURATION, 0x01, 0x14, 0x01)) { // directly copied from github. see why this must be done.
         return false;
     }
 
     uint8_t response[9];
-    receive_command_response(response, 9);
+    receive_full_command_response(response, 9);
 
     if ((response[5] == TFI_PN532_TO_HOST) && (response[6] == SAM_CONFIGURATION + 1)) {
         return true;
