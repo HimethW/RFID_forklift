@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Pins.h>
+#include <SerialInterface.h>
 #include <SPI.h>
 #include <PN532.h>
 
@@ -12,6 +13,8 @@ Pin HW_SCK(B, 1);
 Pin NSS(B, 0);
 
 PN532 pn532(NSS, HW_MOSI, HW_MISO, HW_SCK);
+
+SerialInterface mySerial(16000000UL, 9600);
 
 void setup() {
   Serial.begin(115200);
@@ -45,7 +48,6 @@ void setup() {
     }
     Serial.println();
   }
-  
 }
 
 void loop() {
@@ -82,6 +84,7 @@ void loop() {
             Serial.print(", ");
           }
           Serial.println();
+          mySerial.send(response, uid_length);
 
           if (sak & (1 << 6)) {
             Serial.println("ISO 14443-4 Compliant");
@@ -113,6 +116,5 @@ void loop() {
   } else {
     Serial.println("NO RESP");
   }
-
   delay(1500);
 }
