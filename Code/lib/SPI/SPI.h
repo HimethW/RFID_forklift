@@ -4,6 +4,9 @@
 #include "avr/io.h"
 #include "Pins.h"
 
+#define MSB_FIRST   0
+#define LSB_FIRST   1
+
 class SPI_Master {
     public:
         SPI_Master(
@@ -13,7 +16,7 @@ class SPI_Master {
         );
         // Assume SS is asserted and deasserted by the user
         
-        void initialize();
+        void initialize(uint8_t data_order);
 
         bool send(uint8_t* send_bytes, int num_bytes);
         bool receive(uint8_t* receive_buffer, int num_bytes);

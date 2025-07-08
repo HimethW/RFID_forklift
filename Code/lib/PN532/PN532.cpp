@@ -11,7 +11,7 @@ PN532::PN532(Pin NSS, Pin MOSI, Pin MISO, Pin SCK) : _NSS(NSS), _spi(MOSI, MISO,
 };
 
 void PN532::initialize() {
-    _spi.initialize(); // Initialize SPI
+    _spi.initialize(LSB_FIRST); // Initialize SPI
 
     _NSS.assert();
     delay(5);

@@ -6,7 +6,7 @@ SPI_Master::SPI_Master(Pin MOSI, Pin MISO, Pin SCK) : _MOSI(MOSI), _MISO(MISO), 
     ;
 };
 
-void SPI_Master::initialize() {
+void SPI_Master::initialize(uint8_t data_order) {
     // Set up the SPI pins
     _MOSI.set_output();
     _SCK.set_output();
@@ -17,7 +17,7 @@ void SPI_Master::initialize() {
 
     // Set up the SPI Control Register (SPCR)
     // Enable SPI, setup as master, and set clock rate to 1/16 CPU clock
-    SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0) | (1 << DORD); // make this dord programmable not hardcoded
+    SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0) | (data_order << DORD);
 };
 
 bool SPI_Master::_send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte) {
