@@ -4,7 +4,6 @@
 #include "SPI.h"
 #include "PN532_Commands.h"
 #include "PN532.h"
-#include "Arduino.h"
 
 PN532::PN532(Pin NSS, Pin MOSI, Pin MISO, Pin SCK) : _NSS(NSS), _spi(MOSI, MISO, SCK) {
     _NSS.set_output(); // Initialize the NSS pin
@@ -14,7 +13,7 @@ void PN532::initialize() {
     _spi.initialize(LSB_FIRST); // Initialize SPI
 
     _NSS.assert();
-    delay(5);
+    _delay_ms(5);
 };
 
 bool PN532::send_bytes(uint8_t* bytes, int length) {
@@ -71,7 +70,7 @@ bool PN532::ready_to_respond() {
 
 bool PN532::check_ack() {
     _NSS.deassert();
-    delay(5);
+    _delay_ms(5);
 
     uint8_t send_data[1] = {DATA_READ};
     send_bytes(send_data, 1);
@@ -100,7 +99,7 @@ bool PN532::receive_full_command_response(uint8_t* response_buffer, int length) 
     }
 
     _NSS.deassert();
-    delay(5);
+    _delay_ms(5);
 
     // Send DATA_READ
     uint8_t send_data[1] = {DATA_READ};
@@ -123,7 +122,7 @@ bool PN532::initiate_receive_partial_command_response(uint8_t* response_buffer, 
     }
 
     _NSS.deassert();
-    delay(5);
+    _delay_ms(5);
 
     // Send DATA_READ
     uint8_t send_data[1] = {DATA_READ};
@@ -150,7 +149,7 @@ bool PN532::continue_receive_partial_command_response(uint8_t* response_buffer, 
 
 void PN532::conclude_receive_partial_command_response() {
     _NSS.assert();
-}
+};
 
 bool PN532::SAMConfig() {
     if (!issue_command(SAM_CONFIGURATION, 0x01, 0x14, 0x01)) { // directly copied from github. see why this must be done.
@@ -165,4 +164,73 @@ bool PN532::SAMConfig() {
     } else {
         return false;
     }
+};
+
+bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
+    issue_command(LIST_PASSIVE_TARGETS, 0x01, 0x00);
+
+    uint8_t response[8];
+
+    // PREAMBLE STARTCODE1 STARTCODE2 LEN LCS TFI OPCODE+1 NbTg
+    if (!initiate_receive_partial_command_response(response, 8)) {
+        return false;
+    }
+    
+    uint8_t number_of_tags = response[7];
+
+    // Tg ATQA_MSB ATQA_LSB SAK UID_Length
+    if (!continue_receive_partial_command_response(response, 5)) {
+        return false;
+    };
+
+    *tag_number = response[0];
+    
+    // ATQA_MSB and ATQA_LSB in tag_data[0] and tag_data[1]
+    tag_data[0] = response[1];
+    tag_data[1] = response[2];
+    
+    // SAK in tag_data[2]
+    uint8_t sak = response[3];
+    tag_data[2] = sak;
+
+    // UID Length in tag_data[3];
+    int uid_length = response[4];
+    tag_data[3] = uid_length;
+    
+    if (!continue_receive_partial_command_response(response, uid_length)) {
+        return false;
+    }
+
+    // 4-byte UID goes in tag_data[4] ... tag_data[7]
+    // 7-byte UID goes in tag_data[4] ... tag_data[10]
+    // 10-byte UID goes in tag_data[4] ... tag_data[13]
+    int i;
+    for (i = 0; i < uid_length; i++) {
+        tag_data[4 + i] = response[i];
+    }
+
+    if (sak & (1 << 6)) {
+        // ISO 14443-4 Compliant
+
+        if (!continue_receive_partial_command_response(response, 1)) {
+            return false;
+        }
+
+        int ats_length = response[0];
+
+        // ATS Length in tag_data[4 + i]
+        tag_data[4 + i] = ats_length;
+
+        if (!continue_receive_partial_command_response(response, ats_length)) {
+            return false;
+        }
+
+        for (int j = 0; j < ats_length; j++) {
+            tag_data[4 + i + 1 + j] = response[j];
+        }
+    }
+
+    conclude_receive_partial_command_response();
+
+    return true;
 }

@@ -17,7 +17,6 @@
 #include "Pins.h"
 #include "SPI.h"
 #include "PN532_Commands.h"
-#include "Arduino.h"
 
 const uint8_t ACK_FRAME[6] = {PREAMBLE, STARTCODE1, STARTCODE2, 0x00, 0xFF, POSTAMBLE};
 const uint8_t NACK_FRAME[6] = {PREAMBLE, STARTCODE1, STARTCODE2, 0xFF, 0x00, POSTAMBLE};
@@ -45,7 +44,7 @@ class PN532 {
 
             // Send the command over SPI
             _NSS.deassert();
-            delay(5);
+            _delay_ms(5);
 
             if (!send_bytes(modified_spi_frame, length + 9)) {
                 _NSS.assert();
@@ -53,7 +52,7 @@ class PN532 {
             }
 
             _NSS.assert();
-            delay(5);
+            _delay_ms(5);
             
             if (!ready_to_respond()) {
                 return false; // If the PN532 is not ready to respond, return false
@@ -76,6 +75,8 @@ class PN532 {
         void conclude_receive_partial_command_response();
 
         bool SAMConfig();
+
+        bool detect_tag(uint8_t* tag_number, uint8_t* tag_data);
 
     private:
         Pin _NSS;

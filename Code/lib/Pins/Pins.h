@@ -6,7 +6,6 @@
 #define B 0
 #define C 1
 #define D 2
-#define E 3
 
 class Pin {
     public:

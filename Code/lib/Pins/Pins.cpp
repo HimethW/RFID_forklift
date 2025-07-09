@@ -17,9 +17,6 @@ void Pin::set_output() {
         case D:
             DDRD |= (1 << _pin);
             break;
-        case E:
-            DDRE |= (1 << _pin);
-            break;
     }
 }
 
@@ -33,9 +30,6 @@ void Pin::set_input() {
             break;
         case D:
             DDRD &= ~(1 << _pin);
-            break;
-        case E:
-            DDRE &= ~(1 << _pin);
             break;
     }
 };
@@ -51,9 +45,6 @@ void Pin::assert() {
         case D:
             PORTD |= (1 << _pin);
             break;
-        case E:
-            PORTE |= (1 << _pin);
-            break;
     }
 };
 
@@ -67,9 +58,6 @@ void Pin::deassert() {
             break;
         case D:
             PORTD &= ~(1 << _pin);
-            break;
-        case E:
-            PORTE &= ~(1 << _pin);
             break;
     }
 };
@@ -85,9 +73,6 @@ void Pin::toggle() {
         case D:
             PORTD ^= (1 << _pin);
             break;
-        case E:
-            PORTE ^= (1 << _pin);
-            break;
     }
 };
 
@@ -99,8 +84,6 @@ bool Pin::state() {
             return (PINC & (1 << _pin));
         case D:
             return (PIND & (1 << _pin));
-        case E:
-            return (PINE & (1 << _pin));
         default:
             return false; // Invalid port
     }

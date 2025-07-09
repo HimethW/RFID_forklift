@@ -5,23 +5,23 @@ SerialInterface::SerialInterface(unsigned long system_oscillator_frequency, unsi
     // Configure registers to set the baud rate
     unsigned long UBRR = (system_oscillator_frequency / (16UL * baud_rate)) - 1;
     
-    UBRR1L = (uint8_t)UBRR;
-    UBRR1H = (uint8_t)(UBRR >> 8);
+    UBRR0L = (uint8_t)UBRR;
+    UBRR0H = (uint8_t)(UBRR >> 8);
 
     // Enable receiver and transmitter
-    UCSR1B = (1 << RXEN1) | (1 << TXEN1);
+    UCSR0B = (1 << RXEN0) | (1 << TXEN0);
 
     // Configure frame format as 8-N-1
-    UCSR1C = (1 << UCSZ11) | (1 << UCSZ10); // No parity and 1 stop bit are set by default
+    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00); // No parity and 1 stop bit are set by default
 };
 
 bool SerialInterface::send(uint8_t* bytes, int length) {
     for (int i = 0; i < length; i++) {
-        while (!(UCSR1A & (1 << UDRE1))) {
+        while (!(UCSR0A & (1 << UDRE0))) {
             ; // Wait till USART Data Register is empty, to write new data to the transmit buffer
         }
 
-        UDR1 = (uint8_t)bytes[i];
+        UDR0 = (uint8_t)bytes[i];
     }
     
     return true;
@@ -29,11 +29,11 @@ bool SerialInterface::send(uint8_t* bytes, int length) {
 
 bool SerialInterface::receive(uint8_t* bytes, int length) {
     for (int i = 0; i < length; i++) {
-        while (!(UCSR1A & (1 << RXC1))) {
+        while (!(UCSR0A & (1 << RXC0))) {
             ; // Wait until the USART Receive Complete bit is set indicating there is unread data in UDR
         }
 
-        bytes[i] = UDR1;
+        bytes[i] = UDR0;
     }
 
     return true;

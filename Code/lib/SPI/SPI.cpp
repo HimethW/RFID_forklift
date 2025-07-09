@@ -12,8 +12,8 @@ void SPI_Master::initialize(uint8_t data_order) {
     _SCK.set_output();
     _MISO.set_input();
     
-    // Ensure the SPI is enabled in the Power Reduction Register (PRR0)
-    PRR0 &= ~(1 << PRSPI);
+    // Ensure the SPI is enabled in the Power Reduction Register (PRR)
+    PRR &= ~(1 << PRSPI);
 
     // Set up the SPI Control Register (SPCR)
     // Enable SPI, setup as master, and set clock rate to 1/16 CPU clock
