@@ -17,6 +17,17 @@ PN532 pn532(NSS, HW_MOSI, HW_MISO, HW_SCK);
 
 SerialInterface mySerial(16000000UL, 9600);
 
+void ready_tone() {
+  buzzer.assert();
+  _delay_ms(100);
+  buzzer.deassert();
+  _delay_ms(100);
+  buzzer.assert();
+  _delay_ms(100);
+  buzzer.deassert();
+  _delay_ms(100);
+}
+
 int main() {
   buzzer.set_output();
 
@@ -24,6 +35,8 @@ int main() {
   _delay_ms(100);
 
   pn532.SAMConfig();
+
+  ready_tone();
 
   while (true) {
     uint8_t tag_num;
