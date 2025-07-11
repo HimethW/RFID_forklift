@@ -92,7 +92,3 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## ✉️ Contact
-
-Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/ransadidealwis) or email at `ransadi.dealwis@example.com`.
-
