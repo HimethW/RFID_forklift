@@ -61,19 +61,8 @@ This system enables forklifts to detect RFID-tagged goods during pallet movement
 
 ---
 
-## 📷 Interface Snapshots
-
-> *Add UI images and hardware photos in the `screenshots/` directory and reference them here.*
-
-Example:
-
-```markdown
-![Dashboard](./screenshots/dashboard.png)
-![Tag Scan](./screenshots/tag-scanned.png)
 
 
-
-```
 
 ## 🧪 Field Testing
 
