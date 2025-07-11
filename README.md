@@ -31,5 +31,79 @@ This system enables forklifts to detect RFID-tagged goods during pallet movement
                                                [React Web Dashboard]
 
 
+```
+
+## ⚙️ Technologies Used
+
+### 🖥️ Hardware
+- ATmega328P (QFP)
+- PN532 RFID Reader
+- ESP8266-12F Wi-Fi Module
+- LM2596 Buck Converter
+- Custom PCBs (EasyEDA)
+- SolidWorks Enclosure Design
+
+### 💻 Software
+- Embedded C (SPI & UART protocols)
+- React + Vite (Frontend)
+- Express.js (Backend)
+- PostgreSQL (Database)
+- Node.js
 
 ---
+
+## 🚀 Functional Workflow
+
+1. RFID reader (PN532) detects and reads nearby tags.
+2. ATmega328P processes the UID and sends it to ESP8266 via UART.
+3. ESP8266 transmits tag data to a remote PostgreSQL database.
+4. Web app updates inventory and shipment statuses in real time.
+
+---
+
+## 📷 Interface Snapshots
+
+> *Add UI images and hardware photos in the `screenshots/` directory and reference them here.*
+
+Example:
+
+```markdown
+![Dashboard](./screenshots/dashboard.png)
+![Tag Scan](./screenshots/tag-scanned.png)
+
+
+
+```
+
+## 🧪 Field Testing
+
+
+- Verified tag detection accuracy, Wi-Fi stability, and user workflows  
+- Refined enclosure and PCB based on field challenges (vibrations, range, alignment)  
+
+---
+
+## 👨‍💻 Contributors
+
+  
+- Udugamasooriya P.H.J.  
+- Perera A.L.C.K.  
+- Aazir M.A.M.  
+- Ranaweera R.P.D.D.H.
+- De Alwis W.M.R. 
+- Walgampaya H.K.B.  
+- Vidmal S.S.A.A.  
+- Rathnayake R.M.T.N.B.  
+
+---
+
+## 📃 License
+
+This project is licensed under the [MIT License](LICENSE).  
+
+---
+
+## ✉️ Contact
+
+Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/ransadidealwis) or email at `ransadi.dealwis@example.com`.
+
