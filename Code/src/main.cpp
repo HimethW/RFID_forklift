@@ -41,13 +41,22 @@ int main() {
   while (true) {
     uint8_t tag_num;
     uint8_t tag_data[8];
-    
+
     if (pn532.detect_tag(&tag_num, tag_data)) {
       buzzer.assert();
       _delay_ms(300);
-    }
 
-    buzzer.deassert();
+      for (int i = 0; i < 4; i++) {
+        while (!(UCSR0A & (1 << UDRE0))) {
+          ; // Wait till USART Data Register is empty, to write new data to the transmit buffer
+        }
+        
+        UDR0 = tag_data[4 + i];
+      }
+
+      buzzer.deassert();
+
+    }
   }
 
   return 0;

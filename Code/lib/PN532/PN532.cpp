@@ -157,7 +157,9 @@ bool PN532::SAMConfig() {
     }
 
     uint8_t response[9];
-    receive_full_command_response(response, 9);
+    if (!receive_full_command_response(response, 9)) {
+        return false;
+    }
 
     if ((response[5] == TFI_PN532_TO_HOST) && (response[6] == SAM_CONFIGURATION + 1)) {
         return true;
@@ -167,7 +169,9 @@ bool PN532::SAMConfig() {
 };
 
 bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
-    issue_command(LIST_PASSIVE_TARGETS, 0x01, 0x00);
+    if (!issue_command(LIST_PASSIVE_TARGETS, 0x01, 0x00)) {
+        return false;
+    }
 
     uint8_t response[8];
 
@@ -231,6 +235,64 @@ bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
     }
 
     conclude_receive_partial_command_response();
+
+    return true;
+};
+
+bool PN532::authenticate_mifare_card_block(uint8_t tag_number, uint8_t* uid, uint8_t block_number, uint8_t* key) {
+    bool issued = issue_command(
+        DATA_EXCHANGE, tag_number, 0x60, 0,
+        key[0], key[1], key[2], key[3], key[4], key[5],
+        uid[0], uid[1], uid[2], uid[3]
+    );
+
+    if (!issued) {
+        return false;
+    }
+
+    uint8_t response[24];
+    if (!receive_full_command_response(response, 24)) {
+        return false;
+    }
+
+    if (response[7] == 0) {
+        return true;
+    } else {
+        return false;
+    }
+};
+
+bool PN532::read_mifare_card_block(uint8_t tag_number, uint8_t block_number, uint8_t* response) {
+    if (!issue_command(DATA_EXCHANGE, tag_number, 0x30, block_number)) {
+        return false;
+    }
+
+    if (!receive_full_command_response(response, 26)) {
+        return false;
+    }
+
+    if (response[8] != 0) {
+        return false;
+    }
+
+    return true;
+};
+
+bool PN532::write_mifare_card_block(uint8_t tag_number, uint8_t block_number, uint8_t* bytes) {
+    bool issued = issue_command(
+        DATA_EXCHANGE, tag_number, 0xA0, block_number,
+        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+    );
+
+    if (!issued) {
+        return false;
+    }
+
+    uint8_t response[26];
+    if (!receive_full_command_response(response, 26)) {
+        return false;
+    }
 
     return true;
 }
