@@ -94,14 +94,15 @@ class PN532 {
 
         bool SAMConfig();
 
-        bool detect_tag(uint8_t* tag_number, uint8_t* tag_data);
+        bool detect_card(uint8_t* card_number, uint8_t* card_data);
         
-        MIFARE_Classic_PN532* find_mifare_classic_card();
+        MIFARE_Classic_PN532* get_mifare_classic_card();
 
     private:
         Pin _NSS;
         SPI_Master _spi;
 };
+
 
 class MIFARE_Classic_PN532 {
     public:
@@ -132,10 +133,11 @@ class MIFARE_Classic_PN532 {
 
         bool issue_command_from_array(uint8_t* command_array, int length);
 
+        bool executed_successfully();
+        bool receive_command_response(uint8_t* response_buffer, int length);
+
         bool authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key);
-
         bool read_block(uint8_t block_address, uint8_t* contents);
-
         bool write_block(uint8_t block_address, uint8_t* contents);
 
     private:

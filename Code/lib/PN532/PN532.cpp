@@ -5,6 +5,11 @@
 #include "PN532_Commands.h"
 #include "MIFARE_Classic_Commands.h"
 #include "PN532.h"
+#include "Arduino.h"
+
+/*
+    PN532 Methods
+*/
 
 PN532::PN532(Pin NSS, Pin MOSI, Pin MISO, Pin SCK) : _NSS(NSS), _spi(MOSI, MISO, SCK) {
     _NSS.set_output();
@@ -113,8 +118,6 @@ void PN532::make_normal_information_frame(uint8_t* target_frame, uint8_t TFI, ui
         [Section 6.2.1.1 (PN532UM)]
     */
 
-    // uint8_t DCS = PREAMBLE + STARTCODE1 + STARTCODE2 + TFI;
-
     target_frame[PREAMBLE_IDX] = PREAMBLE;
     target_frame[STARTCODE1_IDX] = STARTCODE1;
     target_frame[STARTCODE2_IDX] = STARTCODE2;
@@ -184,8 +187,8 @@ bool PN532::check_ack() {
 
 bool PN532::issue_command_from_array(uint8_t* command_array, int length) {
     /*
-        Send `command_array` whose 0th entry is the command code and contains the relevant parameters in the following positions, and
-        wait for it to be acknowledged
+        Send `command_array`, where the 0th entry is the command code, and all following entries contain the relevant parameters for
+        the command, and wait for it to be acknowledged (`command_array` should contain PD1 ... PDn)
     */
 
     // Create a normal information frame by adding the frame header and trailer [Section 6.2.1.1 (PN532UM)]
@@ -222,9 +225,7 @@ bool PN532::receive_command_response(uint8_t* response_buffer, int length, bool 
 bool PN532::SAMConfig() {
     /*
         Configure the PN532 in the Normal Mode to not use SAM
-    */
-    
-    /*
+        
         Command format is as follows;
         
         SAM_CONFIGURATION Mode Timeout IRQ
@@ -249,7 +250,7 @@ bool PN532::SAMConfig() {
     return ((response[TFI_IDX] == TFI_PN532_TO_HOST) && (response[OPCODE_IDX] == SAM_CONFIGURATION + 1));
 };
 
-bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
+bool PN532::detect_card(uint8_t* card_number, uint8_t* card_data) {
     /*
         Find a tag, put its logical number in `tag_number`, read its UID (and ATS if ISO 14443-4 Compliant), and put it in `tag_data`
 
@@ -267,33 +268,31 @@ bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
         return false;
     }
 
-    uint8_t response[8];
-
     // Response begins OPCODE+1 NbTg ...
+    uint8_t response[FRAME_HEADER_SIZE + 2];
     if (!receive_command_response(response, FRAME_HEADER_SIZE + 2, true, false)) {
         return false;
     }
-    
-    uint8_t number_of_tags = response[7];
+    // `response[7]` = NbTg is the number of tags detected; we do not need this value, we expect it to be 1 always, as we will
+    // issue commands to read only 1 tag
 
     // Response continues from above as ... Tg ATQA_MSB ATQA_LSB SAK UID_Length ...
     if (!receive_command_response(response, 5, false, false)) {
         return false;
     };
 
-    *tag_number = response[0];
+    *card_number = response[0];
     
-    tag_data[ATQA_MSB_IDX] = response[1];
-    tag_data[ATQA_LSB_IDX] = response[2];
+    card_data[ATQA_MSB_IDX] = response[1];
+    card_data[ATQA_LSB_IDX] = response[2];
     
     uint8_t sak = response[3];
-    tag_data[SAK_IDX] = sak;
+    card_data[SAK_IDX] = sak;
 
     int uid_length = response[4];
-    tag_data[UID_LEN_IDX] = uid_length;
+    card_data[UID_LEN_IDX] = uid_length;
 
     // As per Table 8, Section 6.4.3.4 (ISO-3)
-    bool uid_complete = ~(sak & 0b100);
     bool iso14443_4_compliant = sak & 0b100000;
 
     // Next `uid_length` bytes of the response form the UID of the card
@@ -305,18 +304,15 @@ bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
     // 4-byte UID goes in `tag_data[4]` ... `tag_data[7]`
     // 7-byte UID goes in `tag_data[4]` ... `tag_data[10]`
     // 10-byte UID goes in `tag_data[4]` ... `tag_data[13]`
-    int i;
-    for (i = 0; i < uid_length; i++) {
-        tag_data[4 + i] = response[i];
-    }
+    memcpy(card_data + 4, response, uid_length);
 
-    if (iso14443_4_compliant) { // There will be more bytes (ATS) to be read
+    if (iso14443_4_compliant) { // There are more bytes (ATS) to be read
         // Response continues as ... ATS_Length ...
         uint8_t ats_length;
         _spi.send_and_receive_byte(0x00, &ats_length);
 
         // Put ATS Length in `tag_data[4 + i]`
-        tag_data[4 + i] = ats_length;
+        card_data[4 + uid_length] = ats_length;
 
         // The next `ats_length` bytes form the ATS sent by the card; read them and conclude reading the frame
         if (!receive_command_response(response, ats_length, false, true)) {
@@ -324,28 +320,30 @@ bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
         }
 
         // Place the ATS bytes in the following indices
-        for (int j = 0; j < ats_length; j++) {
-            tag_data[4 + i + 1 + j] = response[j];
-        }
+        memcpy(card_data + 4 + uid_length + 1, response, ats_length);
     }
 
     return true;
 };
 
-MIFARE_Classic_PN532* PN532::find_mifare_classic_card() {
+MIFARE_Classic_PN532* PN532::get_mifare_classic_card() {
     /*
-        Use `detect_tag()` to find a MIFARE Classic Card, and return a pointer to a new MIFARE_Classic_PN532 object
+        Use `detect_card()` to find a MIFARE Classic Card, and return a pointer to a new MIFARE_Classic_PN532 object
     */
 
     uint8_t card_number;
     uint8_t card_data[8];
 
-    if (!detect_tag(&card_number, card_data)) {
+    if (!detect_card(&card_number, card_data)) {
         return nullptr;
     } else {
         return new MIFARE_Classic_PN532(this, card_data + UID_START_IDX, card_data[UID_LEN_IDX]);
     }
 };
+
+/*
+    MIFARE_Classic_PN532
+*/
 
 MIFARE_Classic_PN532::MIFARE_Classic_PN532(PN532* pn532_pcd, uint8_t* uid, int length) {
     _pcd = pn532_pcd;
@@ -358,36 +356,36 @@ bool MIFARE_Classic_PN532::issue_command_from_array(uint8_t* command_array, int 
     return _pcd->issue_command_from_array(command_array, length);
 };
 
-bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key) {
+bool MIFARE_Classic_PN532::receive_command_response(uint8_t* response_buffer, int length) {
     /*
-        Authenticate a block on 4-byte UID card using the given 6-byte key
-
-        Section 7.3.8 (PN532UM) describes format of the command to be issued to authenticate a card:
+        The response will always start
         
-        DATA_EXCHANGE Tg AUTH_COMMAND Addr Key[0] ... Key[5] UID[0] ... UID[3]
+        OPCODE+1 Status ...
+        
+        and have `length` (at most 16) bytes sent by the MIFARE Classic Card following it [Section 7.3.8 (PN532UM)]
+
+        If the command executed successfully, Status = 0 [Section 7.1 (PN532UM)]
     */
 
-    uint8_t command_array[14];
-    command_array[0] = DATA_EXCHANGE;
-    command_array[1] = 1;
-    command_array[2] = authentication_type;
-    command_array[3] = block_address;
-
-    for (int i = 0; i < 6; i++) {
-        command_array[4 + i] = key[i];
+    response_buffer -= (FRAME_HEADER_SIZE + 2); // To accomodate the frame header, OPCODE+1, and Status bytes
+    if (!_pcd->receive_command_response(response_buffer, FRAME_HEADER_SIZE + 2 + length + FRAME_TRAILER_SIZE, true, true)) {
+        return false;
     }
 
-    for (int j = 0; j < 4; j++) {
-        command_array[10 + j] = _uid[j];
-    }
-
-    if (!_pcd->issue_command_from_array(command_array, 14)) {
+    if (response_buffer[7] != 0) {
         return false;
     }
     
-    // Response will have 16 bytes [Section 7.3.8 (PN532UM)]
-    uint8_t response[FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE];
-    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE, true, true)) {
+    return true;
+};
+
+bool MIFARE_Classic_PN532::executed_successfully() {
+    /*
+        Read just two bytes and see if Status = 0; use when no bytes sent by the MIFARE Classic Card are sent back to the host
+    */
+
+    uint8_t response[FRAME_HEADER_SIZE + 2 + FRAME_TRAILER_SIZE];
+    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 2 + FRAME_TRAILER_SIZE, true, true)) {
         return false;
     }
 
@@ -396,32 +394,62 @@ bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8
     }
     
     return true;
+}
+
+bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key) {
+    /*
+        Authenticate a block on 4-byte UID card using the given 6-byte key
+
+        Section 7.3.8 (PN532UM) describes format of the command to be issued to authenticate a card:
+        
+        DATA_EXCHANGE Tg AUTH_COMMAND Addr Key[0] ... Key[5] UID[0] ... UID[3]
+
+        Tg                  = logical number of the tag to be authenticated, we set to 1
+        AUTH_COMMAND        = MIFARE Classic command code; shall be either AUTHENTICATE_KEY_A or AUTHENTICATE_KEY_B; specifies which
+                              type of key to use for authentication, pass this to the function in `authentication_type`
+        Addr                = the address of the block to be authenticated, pass in `block_address`
+        Key[0] ... Key[5]   = 6 bytes of the key to use for authentication, passed in `key`
+        UID[0] ... UID[3]   = 4-byte UID of the card; already stored in `_uid`
+    */
+
+    uint8_t command_array[14];
+
+    command_array[0] = DATA_EXCHANGE;
+    command_array[1] = 1;
+    command_array[2] = authentication_type;
+    command_array[3] = block_address;
+
+    memcpy(command_array + 4, key, 6);
+    memcpy(command_array + 10, _uid, 4);
+
+    if (!_pcd->issue_command_from_array(command_array, 14)) {
+        return false;
+    }
+
+    // The PN532 does not send anything received from the PICC back to the host, simply check for successful execution
+    return executed_successfully();
 };
 
 bool MIFARE_Classic_PN532::read_block(uint8_t block_address, uint8_t* contents) {
     /*
-        Read the block on a card at the given address
+        Read the block at `block_address` of a 4-byte UID card, and place the 16 bytes of content there in `contents`
 
         Section 7.3.8 (PN532UM) describes format of the command:
         
         DATA_EXCHANGE Tg READ_BLOCK Addr
+
+        Tg          = logical number of the card
+        READ_BLOCK  = MIFARE Classic command code
+        Addr        = address of the block to be read
     */
 
     if (!_pcd->issue_command(DATA_EXCHANGE, 1, READ_BLOCK, block_address)) {
         return false;
     }
 
-    uint8_t response[FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE];
-    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE, true, true)) {
+    // We expect 16 bytes of response from the MIFARE Classic card
+    if (!receive_command_response(contents, 16)) {
         return false;
-    }
-
-    if (response[8] == 0) {
-        return false;
-    }
-
-    for (int i = 0; i < 16; i++) {
-        contents[i] = response[i + FRAME_HEADER_SIZE];
     }
 
     return true;
@@ -429,32 +457,31 @@ bool MIFARE_Classic_PN532::read_block(uint8_t block_address, uint8_t* contents) 
 
 bool MIFARE_Classic_PN532::write_block(uint8_t block_address, uint8_t* contents) {
     /*
-        Write 16 bytes to the block at the given address
+        Write the 16 bytes of data specified in `contents` to the block at `block_address`
 
         Section 7.3.8 (PN532UM) describes format of the command:
         
         DATA_EXCHANGE Tg WRITE_BLOCK Addr Byte[0] ... Byte[15]
+        
+        Tg                      = logical number of the tag to be authenticated, we set to 1
+        WRITE_BLOCK             = MIFARE Classic command code
+        Addr                    = the address of the block to be authenticated, pass in `block_address`
+        Byte[0] ... Byte[15]    = 16 bytes of data to be written to the block
     */
 
-    uint8_t command_array[FRAME_HEADER_SIZE + 20 + FRAME_TRAILER_SIZE];
+    uint8_t command_array[20];
 
     command_array[0] = DATA_EXCHANGE;
     command_array[1] = 1;
     command_array[2] = WRITE_BLOCK;
     command_array[3] = block_address;
 
-    for (int i = 0; i < 16; i++) {
-        command_array[4 + i] = contents[i];
-    }
+    memcpy(command_array + 4, contents, 16);
 
-    if (!_pcd->issue_command_from_array(command_array, FRAME_HEADER_SIZE + 20 + FRAME_TRAILER_SIZE)) {
+    if (!_pcd->issue_command_from_array(command_array, 20)) {
         return false;
     }
 
-    uint8_t response[FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE];
-    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE, true, true)) {
-        return false;
-    }
-
-    return true;
+    // Nothing received from the PICC is sent back to the host, simply check the Status byte
+    return executed_successfully();
 };
