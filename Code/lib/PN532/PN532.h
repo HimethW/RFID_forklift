@@ -6,6 +6,7 @@
 #include "Pins.h"
 #include "SPI.h"
 #include "PN532_Commands.h"
+#include "MIFARE_Classic_Commands.h"
 
 // SPI Shift Register Commands
 #define STATUS_READ             0x02
@@ -33,6 +34,7 @@
 #define ATQA_LSB_IDX            1
 #define SAK_IDX                 2
 #define UID_LEN_IDX             3
+#define UID_START_IDX           4
 
 // Frame, Frame Header, Frame Trailer Sizes
 #define ACK_SIZE                6
@@ -42,6 +44,8 @@
 
 const uint8_t ACK_FRAME[ACK_SIZE] = {PREAMBLE, STARTCODE1, STARTCODE2, 0x00, 0xFF, POSTAMBLE};
 const uint8_t NACK_FRAME[NACK_SIZE] = {PREAMBLE, STARTCODE1, STARTCODE2, 0xFF, 0x00, POSTAMBLE};
+
+class MIFARE_Classic_PN532;
 
 class PN532 {
     public:
@@ -91,15 +95,54 @@ class PN532 {
         bool SAMConfig();
 
         bool detect_tag(uint8_t* tag_number, uint8_t* tag_data);
-
-        bool authenticate_mifare_card_block(uint8_t tag_number, uint8_t* uid, uint8_t block_number, uint8_t* key);
         
-        bool read_mifare_card_block(uint8_t tag_number, uint8_t block_number, uint8_t* response);
-        bool write_mifare_card_block(uint8_t tag_number, uint8_t block_number, uint8_t* data);
+        MIFARE_Classic_PN532* find_mifare_classic_card();
 
     private:
         Pin _NSS;
         SPI_Master _spi;
+};
+
+class MIFARE_Classic_PN532 {
+    public:
+        MIFARE_Classic_PN532(PN532* pn532_pcd, uint8_t* uid, int uid_length);
+        
+        template <typename MIFARE_Classic_Command, typename MIFARE_Classic_Block, typename... MIFARE_Classic_Data>
+        bool issue_command(MIFARE_Classic_Command mifare_command, MIFARE_Classic_Block block_address, MIFARE_Classic_Data... data) {
+            /*
+                Issue a MIFARE Classic Command to a selected MIFARE Classic Card using the DATA_EXCHANGE command of the PN532
+
+                Format for DATA_EXCHANGE command with MIFARE Classic Cards on PN532 is
+
+                DATA_EXCHANGE Tg Cmd Addr Data[0] ... Data[15]
+
+                Tg                      = logical number of the selected target, we will set to 1
+                Cmd                     = MIFARE Classic command code
+                Addr                    = MIFARE Classic block address
+                Data[0] ... Data[15]    = 16 bytes of the relevant data to be sent
+
+                [Section 7.3.8 (PN532UM)]
+            */
+
+            uint8_t command_array[] = {DATA_EXCHANGE, 1, mifare_command, block_address, data...};
+            int length = sizeof(command_array) / sizeof(command_array[0]);
+
+            return _pcd->issue_command_from_array(command_array, length);
+        };
+
+        bool issue_command_from_array(uint8_t* command_array, int length);
+
+        bool authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key);
+
+        bool read_block(uint8_t block_address, uint8_t* contents);
+
+        bool write_block(uint8_t block_address, uint8_t* contents);
+
+    private:
+        PN532* _pcd;
+        
+        uint8_t* _uid;
+        int _uid_length;
 };
 
 #endif

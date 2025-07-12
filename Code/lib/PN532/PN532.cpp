@@ -3,6 +3,7 @@
 #include "Pins.h"
 #include "SPI.h"
 #include "PN532_Commands.h"
+#include "MIFARE_Classic_Commands.h"
 #include "PN532.h"
 
 PN532::PN532(Pin NSS, Pin MOSI, Pin MISO, Pin SCK) : _NSS(NSS), _spi(MOSI, MISO, SCK) {
@@ -331,74 +332,129 @@ bool PN532::detect_tag(uint8_t* tag_number, uint8_t* tag_data) {
     return true;
 };
 
-
-
-bool PN532::authenticate_mifare_card_block(uint8_t tag_number, uint8_t* uid, uint8_t block_number, uint8_t* key) {
+MIFARE_Classic_PN532* PN532::find_mifare_classic_card() {
     /*
-        Command format for MIFARE Cards is;
-
-        DATA_EXCHANGE Tg Cmd Addr Data[0] ... Data[15]
-
-        Tg                      = logical number of the selected target
-        Cmd                     = MIFARE command code
-        Addr                    = MIFARE block address
-        Data[0] ... Data[15]    = 16 bytes of the relevant data to be sent
+        Use `detect_tag()` to find a MIFARE Classic Card, and return a pointer to a new MIFARE_Classic_PN532 object
     */
 
-    uint8_t command_array[];
-    bool issued = issue_command(
-        DATA_EXCHANGE, tag_number, 0x60, 0,
-        key[0], key[1], key[2], key[3], key[4], key[5],
-        uid[0], uid[1], uid[2], uid[3]
-    );
+    uint8_t card_number;
+    uint8_t card_data[8];
 
-    if (!issued) {
-        return false;
-    }
-
-    uint8_t response[24];
-    if (!receive_full_command_response(response, 24)) {
-        return false;
-    }
-
-    if (response[7] == 0) {
-        return true;
+    if (!detect_tag(&card_number, card_data)) {
+        return nullptr;
     } else {
-        return false;
+        return new MIFARE_Classic_PN532(this, card_data + UID_START_IDX, card_data[UID_LEN_IDX]);
     }
 };
 
-bool PN532::read_mifare_card_block(uint8_t tag_number, uint8_t block_number, uint8_t* response) {
-    if (!issue_command(DATA_EXCHANGE, tag_number, 0x30, block_number)) {
+MIFARE_Classic_PN532::MIFARE_Classic_PN532(PN532* pn532_pcd, uint8_t* uid, int length) {
+    _pcd = pn532_pcd;
+
+    _uid_length = length;
+    _uid = uid;
+};
+
+bool MIFARE_Classic_PN532::issue_command_from_array(uint8_t* command_array, int length) {
+    return _pcd->issue_command_from_array(command_array, length);
+};
+
+bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key) {
+    /*
+        Authenticate a block on 4-byte UID card using the given 6-byte key
+
+        Section 7.3.8 (PN532UM) describes format of the command to be issued to authenticate a card:
+        
+        DATA_EXCHANGE Tg AUTH_COMMAND Addr Key[0] ... Key[5] UID[0] ... UID[3]
+    */
+
+    uint8_t command_array[14];
+    command_array[0] = DATA_EXCHANGE;
+    command_array[1] = 1;
+    command_array[2] = authentication_type;
+    command_array[3] = block_address;
+
+    for (int i = 0; i < 6; i++) {
+        command_array[4 + i] = key[i];
+    }
+
+    for (int j = 0; j < 4; j++) {
+        command_array[10 + j] = _uid[j];
+    }
+
+    if (!_pcd->issue_command_from_array(command_array, 14)) {
+        return false;
+    }
+    
+    // Response will have 16 bytes [Section 7.3.8 (PN532UM)]
+    uint8_t response[FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE];
+    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE, true, true)) {
         return false;
     }
 
-    if (!receive_full_command_response(response, 26)) {
+    if (response[7] != 0) {
+        return false;
+    }
+    
+    return true;
+};
+
+bool MIFARE_Classic_PN532::read_block(uint8_t block_address, uint8_t* contents) {
+    /*
+        Read the block on a card at the given address
+
+        Section 7.3.8 (PN532UM) describes format of the command:
+        
+        DATA_EXCHANGE Tg READ_BLOCK Addr
+    */
+
+    if (!_pcd->issue_command(DATA_EXCHANGE, 1, READ_BLOCK, block_address)) {
         return false;
     }
 
-    if (response[8] != 0) {
+    uint8_t response[FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE];
+    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE, true, true)) {
         return false;
+    }
+
+    if (response[8] == 0) {
+        return false;
+    }
+
+    for (int i = 0; i < 16; i++) {
+        contents[i] = response[i + FRAME_HEADER_SIZE];
     }
 
     return true;
 };
 
-bool PN532::write_mifare_card_block(uint8_t tag_number, uint8_t block_number, uint8_t* bytes) {
-    bool issued = issue_command(
-        DATA_EXCHANGE, tag_number, 0xA0, block_number,
-        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-        bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
-    );
+bool MIFARE_Classic_PN532::write_block(uint8_t block_address, uint8_t* contents) {
+    /*
+        Write 16 bytes to the block at the given address
 
-    if (!issued) {
+        Section 7.3.8 (PN532UM) describes format of the command:
+        
+        DATA_EXCHANGE Tg WRITE_BLOCK Addr Byte[0] ... Byte[15]
+    */
+
+    uint8_t command_array[FRAME_HEADER_SIZE + 20 + FRAME_TRAILER_SIZE];
+
+    command_array[0] = DATA_EXCHANGE;
+    command_array[1] = 1;
+    command_array[2] = WRITE_BLOCK;
+    command_array[3] = block_address;
+
+    for (int i = 0; i < 16; i++) {
+        command_array[4 + i] = contents[i];
+    }
+
+    if (!_pcd->issue_command_from_array(command_array, FRAME_HEADER_SIZE + 20 + FRAME_TRAILER_SIZE)) {
         return false;
     }
 
-    uint8_t response[26];
-    if (!receive_full_command_response(response, 26)) {
+    uint8_t response[FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE];
+    if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 16 + FRAME_TRAILER_SIZE, true, true)) {
         return false;
     }
 
     return true;
-}
+};

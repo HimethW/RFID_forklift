@@ -1,0 +1,13 @@
+#ifndef MIFARE_CLASSIC_COMMANDS_H
+#define MIFARE_CLASSIC_COMMANDS_H
+
+#define AUTHENTICATE_KEY_A  0x60
+#define AUTHENTICATE_KEY_B  0x61
+#define READ_BLOCK          0x30
+#define WRITE_BLOCK         0xA0
+#define DECREMENT_BLOCK     0xC0
+#define INCREMENT_BLOCK     0xC1
+#define RESTORE_BLOCK       0xC2
+#define TRANSFER_BLOCK      0xB0
+
+#endif
