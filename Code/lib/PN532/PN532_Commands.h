@@ -1,3 +1,23 @@
+/*
+    PN532_Commands.h
+
+    compiled by Pulasthi Udugamasooriya, July 12, 2025
+
+    for "RFID Reader for Forklift"
+    Course Project,
+    EN2160 - Electronic Design Realization,
+    Semester 4, University of Moratuwa
+
+    
+    Commands supported by the PN532 RFID chip.
+
+    The following sources were referenced.
+
+    https://github.com/adafruit/Adafruit-PN532/blob/bf9f3f31961474fdbca23cb57d604c7f27269baf/Adafruit_PN532.h
+
+    https://www.nxp.com/docs/en/user-guide/141520.pdf, Sections 7.2 and 7.3
+*/
+
 #ifndef PN532_COMMANDS_H
 #define PN532_COMMANDS_H
 

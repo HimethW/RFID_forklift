@@ -1,3 +1,29 @@
+/*
+    PN532.h and MIFARE_Classic_Card.h
+
+    compiled by Pulasthi Udugamasooriya, July 12, 2025
+
+    for "RFID Reader for Forklift"
+    Course Project,
+    EN2160 - Electronic Design Realization,
+    Semester 4, University of Moratuwa
+
+    
+    Provides an interface to communicate with NXP's PN532 RFID module over SPI, and authenticate, read, and write blocks of MIFARE
+    Classic Cards.
+
+    The following sources were referenced.
+
+    https://github.com/adafruit/Adafruit-PN532/blob/bf9f3f31961474fdbca23cb57d604c7f27269baf/Adafruit_PN532.h
+    https://github.com/adafruit/Adafruit-PN532/blob/bf9f3f31961474fdbca23cb57d604c7f27269baf/Adafruit_PN532.cpp
+
+    https://www.nxp.com/docs/en/user-guide/141520.pdf [PN532UM]
+    https://www.nxp.com/docs/en/nxp/data-sheets/PN532_C1.pdf [PN532DS]
+    http://www.emutag.com/iso/14443-3.pdf [ISO-3]
+
+    https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
+*/
+
 #include "avr/io.h"
 #include "avr/delay.h"
 #include "Pins.h"

@@ -26,9 +26,6 @@ void setup() {
 }
 
 void loop() {
-  uint8_t tag_num;
-  uint8_t tag_data[8];
-
   MIFARE_Classic_PN532* card;
   card = pn532.get_mifare_classic_card();
   if (card) {

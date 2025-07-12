@@ -1,3 +1,22 @@
+/*
+    MIFARE_Classic_Commands.h
+
+    compiled by Pulasthi Udugamasooriya, July 12, 2025
+
+    for "RFID Reader for Forklift"
+    Course Project,
+    EN2160 - Electronic Design Realization,
+    Semester 4, University of Moratuwa
+
+    
+    Commands supported by MIFARE Classic Cards.
+
+    The following sources were referenced.
+
+    https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
+    https://www.nxp.com/docs/en/user-guide/141520.pdf
+*/
+
 #ifndef MIFARE_CLASSIC_COMMANDS_H
 #define MIFARE_CLASSIC_COMMANDS_H
 
