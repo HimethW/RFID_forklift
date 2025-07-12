@@ -17,6 +17,8 @@ class SPI_Master {
         
         void initialize(uint8_t data_order);
 
+        bool send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte);
+
         bool send(uint8_t* send_bytes, int num_bytes);
         bool receive(uint8_t* receive_buffer, int num_bytes);
         
@@ -24,8 +26,6 @@ class SPI_Master {
         Pin _MOSI;
         Pin _SCK;
         Pin _MISO;
-
-        bool _send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte);
 };
 
 #endif

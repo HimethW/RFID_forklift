@@ -20,17 +20,19 @@ void SPI_Master::initialize(uint8_t data_order) {
     SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0) | (data_order << DORD);
 };
 
-bool SPI_Master::_send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte) {
+bool SPI_Master::send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte) {
     // Write the data to be sent into the SPI Data Register (SPDR)
     SPDR = send_byte;
 
     // Wait for transmission to complete
     while (!(SPSR & (1 << SPIF))) {
-        // Do nothing, this is blocking.
+        // Do nothing, this is blocking. Consider timing out.
     }
 
-    // SPDR now contains a byte received from the slave
-    *receive_byte = SPDR;
+    // SPDR now contains a byte received from the slave, save it in receive_byte if it is not a null pointer
+    if (receive_byte) {
+        *receive_byte = SPDR;
+    }
 
     return true;  // Return true if the operation was successful
 };
@@ -39,7 +41,7 @@ bool SPI_Master::send(uint8_t* send_bytes, int num_bytes) {
     // Use send_and_receive_byte on each byte in send_bytes
     for (int i = 0; i < num_bytes; i++) {
         uint8_t dummy_receive_byte;
-        if (!_send_and_receive_byte(send_bytes[i], &dummy_receive_byte)) {
+        if (!send_and_receive_byte(send_bytes[i], &dummy_receive_byte)) {
             return false; // If any byte is not sent correctly, return false
         };
     }
@@ -50,7 +52,7 @@ bool SPI_Master::receive(uint8_t* receive_buffer, int num_bytes) {
     // Use send_and_receive_byte to receive a known number of bytes
     for (int i = 0; i < num_bytes; i++) {
         uint8_t receive_byte;
-        if (!_send_and_receive_byte(0x00, &receive_byte)) { // Send a dummy byte to receive data
+        if (!send_and_receive_byte(0x00, &receive_byte)) { // Send a dummy byte to receive data
             return false; // If any byte is not received correctly, return false
         } else {
             receive_buffer[i] = receive_byte; // Store the received byte in the buffer

@@ -46,6 +46,7 @@ int main() {
       buzzer.assert();
       _delay_ms(300);
 
+      // Send UID over serial port
       for (int i = 0; i < 4; i++) {
         while (!(UCSR0A & (1 << UDRE0))) {
           ; // Wait till USART Data Register is empty, to write new data to the transmit buffer
