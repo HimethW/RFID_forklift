@@ -1,3 +1,21 @@
+/*
+    SerialInterface.h
+
+    compiled by Pulasthi Udugamasooriya, July 12, 2025
+
+    for "RFID Reader for Forklift"
+    Course Project,
+    EN2160 - Electronic Design Realization,
+    Semester 4, University of Moratuwa
+
+    
+    Simplfies the usage of the ATMega328P's hardware USART.
+
+    The following sources were referenced.
+
+    https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
+*/
+
 #ifndef SERIALINTERFACE_H
 #define SERIALINTERFACE_H
 
