@@ -27,7 +27,6 @@
 #ifndef PN532_H
 #define PN532_H
 
-#include "avr/io.h"
 #include "avr/delay.h"
 #include "Pins.h"
 #include "SPI.h"
@@ -68,8 +67,8 @@
 #define FRAME_HEADER_SIZE       6 // PREAMBLE ... TFI
 #define FRAME_TRAILER_SIZE      2
 
-const uint8_t ACK_FRAME[ACK_SIZE] = {PREAMBLE, STARTCODE1, STARTCODE2, 0x00, 0xFF, POSTAMBLE};
-const uint8_t NACK_FRAME[NACK_SIZE] = {PREAMBLE, STARTCODE1, STARTCODE2, 0xFF, 0x00, POSTAMBLE};
+const unsigned char ACK_FRAME[ACK_SIZE] = {PREAMBLE, STARTCODE1, STARTCODE2, 0x00, 0xFF, POSTAMBLE};
+const unsigned char NACK_FRAME[NACK_SIZE] = {PREAMBLE, STARTCODE1, STARTCODE2, 0xFF, 0x00, POSTAMBLE};
 
 class MIFARE_Classic_PN532;
 
@@ -79,13 +78,13 @@ class PN532 {
 
         void initialize();
 
-        bool send_bytes(uint8_t* bytes, int length);
-        bool receive_bytes(uint8_t* buffer, int length);
+        bool send_bytes(unsigned char* bytes, int length);
+        bool receive_bytes(unsigned char* buffer, int length);
 
-        bool write_frame(uint8_t* frame, int length);
-        bool read_frame(uint8_t* frame_target, int length, bool start = false, bool conclude = false);
+        bool write_frame(unsigned char* frame, int length);
+        bool read_frame(unsigned char* frame_target, int length, bool start = false, bool conclude = false);
 
-        void make_normal_information_frame(uint8_t* target_frame, uint8_t TFI, uint8_t* bytes, uint8_t num_bytes);
+        void make_normal_information_frame(unsigned char* target_frame, unsigned char TFI, unsigned char* bytes, unsigned char num_bytes);
 
         bool ready_to_respond();
         bool check_ack();
@@ -96,11 +95,11 @@ class PN532 {
                 Issue a command to the PN532, and check if it is ACK'ed
             */
 
-            uint8_t data_bytes[] = {(uint8_t)(opcode), (uint8_t)(params)...};
+            unsigned char data_bytes[] = {(unsigned char)(opcode), (unsigned char)(params)...};
             int length = sizeof(data_bytes) / sizeof(data_bytes[0]);
 
             // Create a normal information frame by adding the frame header and trailer [Section 6.2.1.1 (PN532UM)]
-            uint8_t normal_information_frame[FRAME_HEADER_SIZE + length + FRAME_TRAILER_SIZE];
+            unsigned char normal_information_frame[FRAME_HEADER_SIZE + length + FRAME_TRAILER_SIZE];
             make_normal_information_frame(normal_information_frame, TFI_HOST_TO_PN532, data_bytes, length);
 
             if (!write_frame(normal_information_frame, FRAME_HEADER_SIZE + length + FRAME_TRAILER_SIZE)) {
@@ -114,13 +113,13 @@ class PN532 {
             return check_ack();
         };
 
-        bool issue_command_from_array(uint8_t* command_array, int length);
+        bool issue_command_from_array(unsigned char* command_array, int length);
         
-        bool receive_command_response(uint8_t* response_buffer, int length, bool start = false, bool conclude = false);
+        bool receive_command_response(unsigned char* response_buffer, int length, bool start = false, bool conclude = false);
 
         bool SAMConfig();
 
-        bool detect_card(uint8_t* card_number, uint8_t* card_data);
+        bool detect_card(unsigned char* card_number, unsigned char* card_data);
         
         MIFARE_Classic_PN532* get_mifare_classic_card();
 
@@ -132,7 +131,7 @@ class PN532 {
 
 class MIFARE_Classic_PN532 {
     public:
-        MIFARE_Classic_PN532(PN532* pn532_pcd, uint8_t* uid, int uid_length);
+        MIFARE_Classic_PN532(PN532* pn532_pcd, unsigned char* uid, int uid_length);
         
         template <typename MIFARE_Classic_Command, typename MIFARE_Classic_Block, typename... MIFARE_Classic_Data>
         bool issue_command(MIFARE_Classic_Command mifare_command, MIFARE_Classic_Block block_address, MIFARE_Classic_Data... data) {
@@ -151,25 +150,25 @@ class MIFARE_Classic_PN532 {
                 [Section 7.3.8 (PN532UM)]
             */
 
-            uint8_t command_array[] = {DATA_EXCHANGE, 1, mifare_command, block_address, data...};
+            unsigned char command_array[] = {DATA_EXCHANGE, 1, mifare_command, block_address, data...};
             int length = sizeof(command_array) / sizeof(command_array[0]);
 
             return _pcd->issue_command_from_array(command_array, length);
         };
 
-        bool issue_command_from_array(uint8_t* command_array, int length);
+        bool issue_command_from_array(unsigned char* command_array, int length);
 
         bool executed_successfully();
-        bool receive_command_response(uint8_t* response_buffer, int length);
+        bool receive_command_response(unsigned char* response_buffer, int length);
 
-        bool authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key);
-        bool read_block(uint8_t block_address, uint8_t* contents);
-        bool write_block(uint8_t block_address, uint8_t* contents);
+        bool authenticate_block(unsigned char authentication_type, unsigned char block_address, unsigned char* key);
+        bool read_block(unsigned char block_address, unsigned char* contents);
+        bool write_block(unsigned char block_address, unsigned char* contents);
 
     private:
         PN532* _pcd;
         
-        uint8_t* _uid;
+        unsigned char* _uid;
         int _uid_length;
 };
 

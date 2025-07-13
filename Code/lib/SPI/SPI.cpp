@@ -16,7 +16,6 @@
     https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
 */
 
-#include "avr/io.h"
 #include "Pins.h"
 #include "SPI.h"
 
@@ -24,7 +23,7 @@ SPI_Master::SPI_Master(Pin MOSI, Pin MISO, Pin SCK) : _MOSI(MOSI), _MISO(MISO), 
     ;
 };
 
-void SPI_Master::initialize(uint8_t data_order) {
+void SPI_Master::initialize(unsigned char data_order) {
     // Follows the example in Section 18.2
 
     // Set up the SPI pins
@@ -33,14 +32,14 @@ void SPI_Master::initialize(uint8_t data_order) {
     _MISO.set_input();
     
     // Ensure the SPI is enabled in the Power Reduction Register (PRR) [Section 9.11.3]
-    PRR &= ~(1 << PRSPI);
+    PRR0 &= ~(1 << PRSPI);
 
     // Set up the SPI Control Register (SPCR) [Section 18.5.1]
     // Enable SPI, setup as master, and set clock rate to 1/16 CPU clock
     SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0) | (data_order << DORD);
 };
 
-bool SPI_Master::send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte) {
+bool SPI_Master::send_and_receive_byte(unsigned char send_byte, unsigned char* receive_byte) {
     // Follows the example in Section 18.2 and Section 18.5.2
 
     // Write the data to be sent into the SPI Data Register (SPDR)
@@ -59,7 +58,7 @@ bool SPI_Master::send_and_receive_byte(uint8_t send_byte, uint8_t* receive_byte)
     return true;
 };
 
-bool SPI_Master::send(uint8_t* send_bytes, int num_bytes) {
+bool SPI_Master::send(unsigned char* send_bytes, int num_bytes) {
     // Use send_and_receive_byte on each byte in send_bytes
     for (int i = 0; i < num_bytes; i++) {
         if (!send_and_receive_byte(send_bytes[i], nullptr)) {
@@ -69,10 +68,10 @@ bool SPI_Master::send(uint8_t* send_bytes, int num_bytes) {
     return true;
 };
 
-bool SPI_Master::receive(uint8_t* receive_buffer, int num_bytes) {
+bool SPI_Master::receive(unsigned char* receive_buffer, int num_bytes) {
     // Use send_and_receive_byte to receive a known number of bytes
     for (int i = 0; i < num_bytes; i++) {
-        uint8_t receive_byte;
+        unsigned char receive_byte;
         if (!send_and_receive_byte(0x00, &receive_byte)) { // Send a dummy byte to receive data
             return false;
         } else {

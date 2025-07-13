@@ -24,7 +24,6 @@
     https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
 */
 
-#include "avr/io.h"
 #include "avr/delay.h"
 #include "Pins.h"
 #include "SPI.h"
@@ -48,15 +47,15 @@ void PN532::initialize() {
     _delay_ms(5);
 };
 
-bool PN532::send_bytes(uint8_t* bytes, int length) {
+bool PN532::send_bytes(unsigned char* bytes, int length) {
     return _spi.send(bytes, length);
 };
 
-bool PN532::receive_bytes(uint8_t* buffer, int length) {
+bool PN532::receive_bytes(unsigned char* buffer, int length) {
     return _spi.receive(buffer, length);
 };
 
-bool PN532::write_frame(uint8_t* frame, int length) {
+bool PN532::write_frame(unsigned char* frame, int length) {
     /*
         Send a DATA_WRITE byte first, then send the bytes contained in `frame`
     */
@@ -83,7 +82,7 @@ bool PN532::write_frame(uint8_t* frame, int length) {
     return true;
 };
 
-bool PN532::read_frame(uint8_t* frame_target, int length, bool start, bool conclude) {
+bool PN532::read_frame(unsigned char* frame_target, int length, bool start, bool conclude) {
     /*
         If the PN532 has data available to be read, send a DATA_READ byte, then read `length` bytes of the data
 
@@ -125,7 +124,7 @@ bool PN532::read_frame(uint8_t* frame_target, int length, bool start, bool concl
     return true;
 };
 
-void PN532::make_normal_information_frame(uint8_t* target_frame, uint8_t TFI, uint8_t* bytes, uint8_t num_bytes) {
+void PN532::make_normal_information_frame(unsigned char* target_frame, unsigned char TFI, unsigned char* bytes, unsigned char num_bytes) {
     /*
         Prepare a frame appending the header and trailer to the given data bytes and put it in `target_frame`
 
@@ -151,7 +150,7 @@ void PN532::make_normal_information_frame(uint8_t* target_frame, uint8_t TFI, ui
     target_frame[LCS_IDX] = ~target_frame[LEN_IDX] + 1;
     target_frame[TFI_IDX] = TFI;
     
-    uint8_t DCS = TFI;
+    unsigned char DCS = TFI;
 
     for (int i = 0; i < num_bytes; i++) {
         target_frame[TFI_IDX + 1 + i] = bytes[i];
@@ -180,7 +179,7 @@ bool PN532::ready_to_respond() {
         // Poll the Status byte and receive a byte of response [Section 6.2.5.1 (PN532UM)]
         _spi.send_and_receive_byte(STATUS_READ, nullptr);
 
-        uint8_t response_buffer;
+        unsigned char response_buffer;
         _spi.send_and_receive_byte(0x00, &response_buffer);
 
         _NSS.assert();
@@ -197,7 +196,7 @@ bool PN532::check_ack() {
         ready to respond
     */
 
-    uint8_t response[ACK_SIZE];
+    unsigned char response[ACK_SIZE];
     if (!read_frame(response, ACK_SIZE, true, true)) {
         return false;
     }
@@ -211,14 +210,14 @@ bool PN532::check_ack() {
     return true;
 };
 
-bool PN532::issue_command_from_array(uint8_t* command_array, int length) {
+bool PN532::issue_command_from_array(unsigned char* command_array, int length) {
     /*
         Send `command_array`, where the 0th entry is the command code, and all following entries contain the relevant parameters for
         the command, and wait for it to be acknowledged (`command_array` should contain PD1 ... PDn)
     */
 
     // Create a normal information frame by adding the frame header and trailer [Section 6.2.1.1 (PN532UM)]
-    uint8_t normal_information_frame[FRAME_HEADER_SIZE + length + FRAME_TRAILER_SIZE];
+    unsigned char normal_information_frame[FRAME_HEADER_SIZE + length + FRAME_TRAILER_SIZE];
     make_normal_information_frame(normal_information_frame, TFI_HOST_TO_PN532, command_array, length);
 
     if (!write_frame(normal_information_frame, FRAME_HEADER_SIZE + length + FRAME_TRAILER_SIZE)) {
@@ -232,7 +231,7 @@ bool PN532::issue_command_from_array(uint8_t* command_array, int length) {
     return check_ack();
 }
 
-bool PN532::receive_command_response(uint8_t* response_buffer, int length, bool start, bool conclude) {
+bool PN532::receive_command_response(unsigned char* response_buffer, int length, bool start, bool conclude) {
     /*
         See if the PN532 is ready to respond, then buffer in `length` bytes of the response
 
@@ -268,7 +267,7 @@ bool PN532::SAMConfig() {
     }
 
     // Response is just OPCODE+1
-    uint8_t response[FRAME_HEADER_SIZE + 1 + FRAME_TRAILER_SIZE];
+    unsigned char response[FRAME_HEADER_SIZE + 1 + FRAME_TRAILER_SIZE];
     if (!receive_command_response(response, FRAME_HEADER_SIZE + 1 + FRAME_TRAILER_SIZE, true, true)) {
         return false;
     }
@@ -276,7 +275,7 @@ bool PN532::SAMConfig() {
     return ((response[TFI_IDX] == TFI_PN532_TO_HOST) && (response[OPCODE_IDX] == SAM_CONFIGURATION + 1));
 };
 
-bool PN532::detect_card(uint8_t* card_number, uint8_t* card_data) {
+bool PN532::detect_card(unsigned char* card_number, unsigned char* card_data) {
     /*
         Find a tag, put its logical number in `tag_number`, read its UID (and ATS if ISO 14443-4 Compliant), and put it in `tag_data`
 
@@ -295,7 +294,7 @@ bool PN532::detect_card(uint8_t* card_number, uint8_t* card_data) {
     }
 
     // Response begins OPCODE+1 NbTg ...
-    uint8_t response[FRAME_HEADER_SIZE + 2];
+    unsigned char response[FRAME_HEADER_SIZE + 2];
     if (!receive_command_response(response, FRAME_HEADER_SIZE + 2, true, false)) {
         return false;
     }
@@ -312,7 +311,7 @@ bool PN532::detect_card(uint8_t* card_number, uint8_t* card_data) {
     card_data[ATQA_MSB_IDX] = response[1];
     card_data[ATQA_LSB_IDX] = response[2];
     
-    uint8_t sak = response[3];
+    unsigned char sak = response[3];
     card_data[SAK_IDX] = sak;
 
     int uid_length = response[4];
@@ -334,7 +333,7 @@ bool PN532::detect_card(uint8_t* card_number, uint8_t* card_data) {
 
     if (iso14443_4_compliant) { // There are more bytes (ATS) to be read
         // Response continues as ... ATS_Length ...
-        uint8_t ats_length;
+        unsigned char ats_length;
         _spi.send_and_receive_byte(0x00, &ats_length);
 
         // Put ATS Length in `tag_data[4 + i]`
@@ -357,8 +356,8 @@ MIFARE_Classic_PN532* PN532::get_mifare_classic_card() {
         Use `detect_card()` to find a MIFARE Classic Card, and return a pointer to a new MIFARE_Classic_PN532 object
     */
 
-    uint8_t card_number;
-    uint8_t card_data[8];
+    unsigned char card_number;
+    unsigned char card_data[8];
 
     if (!detect_card(&card_number, card_data)) {
         return nullptr;
@@ -371,18 +370,18 @@ MIFARE_Classic_PN532* PN532::get_mifare_classic_card() {
     MIFARE_Classic_PN532
 */
 
-MIFARE_Classic_PN532::MIFARE_Classic_PN532(PN532* pn532_pcd, uint8_t* uid, int length) {
+MIFARE_Classic_PN532::MIFARE_Classic_PN532(PN532* pn532_pcd, unsigned char* uid, int length) {
     _pcd = pn532_pcd;
 
     _uid_length = length;
     _uid = uid;
 };
 
-bool MIFARE_Classic_PN532::issue_command_from_array(uint8_t* command_array, int length) {
+bool MIFARE_Classic_PN532::issue_command_from_array(unsigned char* command_array, int length) {
     return _pcd->issue_command_from_array(command_array, length);
 };
 
-bool MIFARE_Classic_PN532::receive_command_response(uint8_t* response_buffer, int length) {
+bool MIFARE_Classic_PN532::receive_command_response(unsigned char* response_buffer, int length) {
     /*
         The response will always start
         
@@ -410,7 +409,7 @@ bool MIFARE_Classic_PN532::executed_successfully() {
         Read just two bytes and see if Status = 0; use when no bytes sent by the MIFARE Classic Card are sent back to the host
     */
 
-    uint8_t response[FRAME_HEADER_SIZE + 2 + FRAME_TRAILER_SIZE];
+    unsigned char response[FRAME_HEADER_SIZE + 2 + FRAME_TRAILER_SIZE];
     if (!_pcd->receive_command_response(response, FRAME_HEADER_SIZE + 2 + FRAME_TRAILER_SIZE, true, true)) {
         return false;
     }
@@ -422,7 +421,7 @@ bool MIFARE_Classic_PN532::executed_successfully() {
     return true;
 }
 
-bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8_t block_address, uint8_t* key) {
+bool MIFARE_Classic_PN532::authenticate_block(unsigned char authentication_type, unsigned char block_address, unsigned char* key) {
     /*
         Authenticate a block on 4-byte UID card using the given 6-byte key
 
@@ -438,7 +437,7 @@ bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8
         UID[0] ... UID[3]   = 4-byte UID of the card; already stored in `_uid`
     */
 
-    uint8_t command_array[14];
+    unsigned char command_array[14];
 
     command_array[0] = DATA_EXCHANGE;
     command_array[1] = 1;
@@ -456,7 +455,7 @@ bool MIFARE_Classic_PN532::authenticate_block(uint8_t authentication_type, uint8
     return executed_successfully();
 };
 
-bool MIFARE_Classic_PN532::read_block(uint8_t block_address, uint8_t* contents) {
+bool MIFARE_Classic_PN532::read_block(unsigned char block_address, unsigned char* contents) {
     /*
         Read the block at `block_address` of a 4-byte UID card, and place the 16 bytes of content there in `contents`
 
@@ -481,7 +480,7 @@ bool MIFARE_Classic_PN532::read_block(uint8_t block_address, uint8_t* contents) 
     return true;
 };
 
-bool MIFARE_Classic_PN532::write_block(uint8_t block_address, uint8_t* contents) {
+bool MIFARE_Classic_PN532::write_block(unsigned char block_address, unsigned char* contents) {
     /*
         Write the 16 bytes of data specified in `contents` to the block at `block_address`
 
@@ -495,7 +494,7 @@ bool MIFARE_Classic_PN532::write_block(uint8_t block_address, uint8_t* contents)
         Byte[0] ... Byte[15]    = 16 bytes of data to be written to the block
     */
 
-    uint8_t command_array[20];
+    unsigned char command_array[20];
 
     command_array[0] = DATA_EXCHANGE;
     command_array[1] = 1;
