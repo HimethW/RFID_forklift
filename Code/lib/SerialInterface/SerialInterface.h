@@ -19,6 +19,7 @@
 #ifndef SERIALINTERFACE_H
 #define SERIALINTERFACE_H
 
+// Relevant registers and bit positions [Section 31]
 #define UCSR0A  *((volatile unsigned char*)(0xC0))
 #define UCSR0B  *((volatile unsigned char*)(0xC1))
 #define UCSR0C  *((volatile unsigned char*)(0xC2))
