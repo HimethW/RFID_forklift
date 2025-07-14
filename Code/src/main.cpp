@@ -5,12 +5,12 @@
 #include <SPI.h>
 #include <PN532.h>
 
-Pin HW_MOSI(B, 2);
-Pin HW_MISO(B, 3);
-Pin HW_SCK(B, 1);
+// Pin HW_MOSI(B, 2);
+// Pin HW_MISO(B, 3);
+// Pin HW_SCK(B, 1);
 Pin NSS(B, 0);
 
-PN532 pn532(NSS, HW_MOSI, HW_MISO, HW_SCK);
+PN532 pn532(NSS);
 
 void setup() {
   Serial.begin(9600);

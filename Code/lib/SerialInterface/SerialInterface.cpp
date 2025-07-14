@@ -18,11 +18,11 @@
 
 #include "SerialInterface.h"
 
-SerialInterface::SerialInterface(unsigned long system_oscillator_frequency, unsigned long baud_rate) {
+SerialInterface::SerialInterface(unsigned long baud_rate) {
     // Following the example in Section 19.5
 
     // Calculate UBRR and configure the registers to set the baud rate [Table 19-1, Section 19.3.1], [Section 19.10.5]
-    unsigned long UBRR = (system_oscillator_frequency / (16UL * baud_rate)) - 1;
+    unsigned long UBRR = ((unsigned long)CPU_FREQ / (16UL * baud_rate)) - 1;
     
     UBRR0L = (unsigned char)UBRR;
     UBRR0H = (unsigned char)(UBRR >> 8);
@@ -34,27 +34,27 @@ SerialInterface::SerialInterface(unsigned long system_oscillator_frequency, unsi
     UCSR0C = (1 << UCSZ00) | (1 << UCSZ01); // No parity and 1 stop bit are set by default
 };
 
-bool SerialInterface::send(unsigned char* bytes, int length) {
+bool SerialInterface::send(unsigned char* send_bytes, int num_bytes) {
     // With reference to the example in Section 19.6.1 and Section 19.10.2
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < num_bytes; i++) {
         while (!(UCSR0A & (1 << UDRE0))) {
             ; // Wait till USART Data Register is empty, to write new data to the transmit buffer
         }
 
-        UDR0 = (unsigned char)bytes[i]; // Send a byte
+        UDR0 = (unsigned char)send_bytes[i]; // Send a byte
     }
     
     return true;
 };
 
-bool SerialInterface::receive(unsigned char* bytes, int length) {
+bool SerialInterface::receive(unsigned char* receive_buffer, int num_bytes) {
     // With reference to the example in Section 19.7.1 and Section 19.10.2
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < num_bytes; i++) {
         while (!(UCSR0A & (1 << RXC0))) {
             ; // Wait until the USART Receive Complete bit is set indicating there is unread data in UDR
         }
 
-        bytes[i] = UDR0; // Read a byte
+        receive_buffer[i] = UDR0; // Read a byte
     }
 
     return true;

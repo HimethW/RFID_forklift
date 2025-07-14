@@ -37,8 +37,10 @@
     PN532 Methods
 */
 
-PN532::PN532(Pin NSS, Pin MOSI, Pin MISO, Pin SCK) : _NSS(NSS), _spi(MOSI, MISO, SCK) {
+PN532::PN532(Pin NSS) : _NSS(NSS) {
     _NSS.set_output();
+    
+    _spi = SPI_Master();
 };
 
 void PN532::initialize() {

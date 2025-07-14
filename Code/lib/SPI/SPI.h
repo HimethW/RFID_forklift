@@ -41,7 +41,7 @@
 
 class SPI_Master {
     public:
-        SPI_Master(Pin MOSI, Pin MISO, Pin SCK); // Assume SS is asserted and deasserted by the user
+        SPI_Master(); // Assume SS is asserted and deasserted by the user
         
         void initialize(unsigned char data_order);
 

@@ -19,7 +19,7 @@
 #include "Pins.h"
 #include "SPI.h"
 
-SPI_Master::SPI_Master(Pin MOSI, Pin MISO, Pin SCK) : _MOSI(MOSI), _MISO(MISO), _SCK(SCK) {
+SPI_Master::SPI_Master() : _MOSI(B, 3), _MISO(B, 4), _SCK(B, 5) {
     ;
 };
 

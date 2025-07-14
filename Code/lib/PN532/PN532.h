@@ -76,7 +76,7 @@ class MIFARE_Classic_PN532;
 
 class PN532 {
     public:
-        PN532(Pin NSS, Pin MOSI, Pin MISO, Pin SCK);
+        PN532(Pin NSS);
 
         void initialize();
 
