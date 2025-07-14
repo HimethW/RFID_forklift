@@ -27,11 +27,13 @@
 #ifndef PN532_H
 #define PN532_H
 
-#include "avr/delay.h"
 #include "Pins.h"
 #include "SPI.h"
+#include "Timer.h"
 #include "PN532_Commands.h"
 #include "MIFARE_Classic_Commands.h"
+
+#include "string.h"
 
 // SPI Shift Register Commands
 #define STATUS_READ             0x02

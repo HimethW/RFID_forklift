@@ -24,13 +24,14 @@
     https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
 */
 
-#include "avr/delay.h"
 #include "Pins.h"
 #include "SPI.h"
+#include "Timer.h"
 #include "PN532_Commands.h"
 #include "MIFARE_Classic_Commands.h"
 #include "PN532.h"
-#include "Arduino.h"
+
+#include "string.h"
 
 /*
     PN532 Methods
@@ -44,7 +45,7 @@ void PN532::initialize() {
     _spi.initialize(LSB_FIRST);
 
     _NSS.assert(); // Keep the chip deactivated initially
-    _delay_ms(5);
+    delay_ms(5);
 };
 
 bool PN532::send_bytes(unsigned char* bytes, int length) {
@@ -62,7 +63,7 @@ bool PN532::write_frame(unsigned char* frame, int length) {
     
     // NSS assertion and deassertion as described in Section 8.3.5.5 (PN532DS)
     _NSS.deassert();
-    _delay_ms(5);
+    delay_ms(5);
 
     // Start by first sending a DATA_WRITE byte, as required by modified SPI frames [Section 6.2.5 (PN532UM)]
     if (!_spi.send_and_receive_byte(DATA_WRITE, nullptr)) {
@@ -77,7 +78,7 @@ bool PN532::write_frame(unsigned char* frame, int length) {
     }
 
     _NSS.assert();
-    _delay_ms(5);
+    delay_ms(5);
 
     return true;
 };
@@ -100,7 +101,7 @@ bool PN532::read_frame(unsigned char* frame_target, int length, bool start, bool
     if (start) {
         // Deassert NSS to start data read [Section 8.3.5.4 (PN532DS)]
         _NSS.deassert();
-        _delay_ms(5);
+        delay_ms(5);
         
         // Start by sending a DATA_READ byte [Section 6.2.5 (PN532UM)]
         if (!_spi.send_and_receive_byte(DATA_READ, nullptr)) {
@@ -173,7 +174,7 @@ bool PN532::ready_to_respond() {
     while (!(ready) && timeout > 0) {
         _NSS.deassert();
 
-        _delay_ms(10);
+        delay_ms(10);
         timeout -= 10; 
 
         // Poll the Status byte and receive a byte of response [Section 6.2.5.1 (PN532UM)]

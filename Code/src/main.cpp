@@ -1,10 +1,9 @@
 #include <Arduino.h>
 #include <Pins.h>
+#include <Timer.h>
 #include <SerialInterface.h>
 #include <SPI.h>
 #include <PN532.h>
-
-#include <avr/delay.h>
 
 Pin HW_MOSI(B, 2);
 Pin HW_MISO(B, 3);
@@ -15,13 +14,15 @@ PN532 pn532(NSS, HW_MOSI, HW_MISO, HW_SCK);
 
 void setup() {
   Serial.begin(9600);
-  delay(1000);
+  delay_ms(1000);
   Serial.println("HI");
 
   pn532.initialize();
-  _delay_ms(100);
+  delay_ms(100);
 
   pn532.SAMConfig();
+
+  initialize_timer_0(PRESCALER_64);
 }
 
 void loop() {
@@ -46,11 +47,11 @@ void loop() {
         Serial.println("CUDNT READ");
       }
 
-      delay(2000);
+      delay_ms(2000);
 
       Serial.println("GONNA WRITE");
       
-      unsigned char newcont[16] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
+      unsigned char newcont[16] = {5, 1, 2, 3, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
       
       if (card->write_block(0x02, newcont)) {
         Serial.println("WROTE");
@@ -58,7 +59,7 @@ void loop() {
         Serial.println("CUDNT WRITE");
       }
 
-      delay(1000);
+      delay_ms(1000);
 
     } else {
       Serial.println("CUDNT AUTH");
@@ -66,5 +67,5 @@ void loop() {
   } else {
     Serial.println("NO");
   }
-  delay(500);
+  delay_ms(500);
 }
