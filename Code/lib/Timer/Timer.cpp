@@ -19,7 +19,7 @@
 
 #include "Timer.h"
 
-void initialize_timer_0(unsigned char prescaler) {
+void initialize_timer() {
     /*
         Initialize Timer 0 with the specified prescaler
     */
@@ -33,52 +33,59 @@ void initialize_timer_0(unsigned char prescaler) {
     TCCR0A |= (1 << WGM01);
     TCCR0B &= ~(1 << WGM02);
 
-    TCCR0B &= 0xF8; // Clear the CS bits in TCCR0B
-    TCCR0B |= prescaler; // Set the prescaler
+    // Clear the CS bits (3 least significant bits) in TCCR0B to disable the timer
+    TCCR0B &= 0b11111000;
 };
 
-void delay_ms(unsigned long milliseconds) {
+bool blocking_delay(unsigned long duration, unsigned char unit) {
     /*
         Delay for the specified number of milliseconds using Timer 0
     */
 
-    // Set TCNT = 0 and initialize OCR0A
     TCNT0 = 0;
-    OCR0A = 250;
 
-    float tick_period; // In milliseconds
-    switch (TCCR0B & 0x07) { // Extract CS bits from TCCR0B
-        case NO_PRESCALER:
-            tick_period = 1000.0 / CPU_FREQ;
-            break;
-        case PRESCALER_8:
-            tick_period = 8000.0 / CPU_FREQ;
-            break;
-        case PRESCALER_64:
-            tick_period = 64000.0 / CPU_FREQ;
-            break;
-        case PRESCALER_256:
-            tick_period = 256000.0 / CPU_FREQ;
-            break;
-        case PRESCALER_1024:
-            tick_period = 1024000.0 / CPU_FREQ;
-            break;
-        default:
-            return; // Invalid prescaler
+    /*
+        The timer period is (Prescaling Factor / CPU_FREQ), i.e., TCNT0 is incremented by 1, every (Prescaling Factor / CPU_FREQ)
+        seconds. The OCF0A flag is set whenever TCNT0 reaches the value in OCR0A, so if TCNT0 starts at 0, the time taken for it to
+        reach the value in OCR0A is (Prescaling Factor / CPU_FREQ) * OCR0A seconds.
+
+        If we reset TCNT0 every time it reaches OCR0A (which we can detect when the OCF0A flag is set), we can count in increments
+        of (Prescaling Factor / CPU_FREQ) * OCR0A seconds.
+
+        The smallest time increment we can count is when the prescaling factor and OCR0A are both 1 (their smallest meaningful values),
+        and is (1 / CPU_FREQ) seconds, or 62.5 nanoseconds.
+        The largest time increment we can count is when the prescaling factor is 1024 and OCR0A is 255, and is (1024 / CPU_FREQ) * 255
+        = 16.384 milliseconds.
+
+        Hence, we define two levels of precision; millisecond and microsecond precision.
+        
+        For millisecond precision, we need (Prescaling Factor / CPU_FREQ) * OCR0A = 0.001 seconds, so Prescaling Factor * OCR0A =
+        16000000 * 0.001 = 16000. But 16000 = 64 * 250, so we can use a prescaling factor of 64 and OCR0A = 250.
+
+        For microsecond precision, we need (Prescaling Factor / CPU_FREQ) * OCR0A = 0.000001 seconds, so Prescaling Factor * OCR0A =
+        16000000 * 0.000001 = 16, so we can use a prescaling factor of 1 and OCR0A = 16.
+    */
+    if (unit == MILLISECONDS) {
+        TCCR0B |= PRESCALER_64;
+        OCR0A = 250;
+    } else if (unit == MICROSECONDS) {
+        TCCR0B |= NO_PRESCALER;
+        OCR0A = 16;
+    } else {
+        return false;
     }
 
-    unsigned long ticks_to_count = milliseconds / (tick_period * 250);
-    unsigned long ticks_so_far = 0;
+    unsigned long ticks_counted = 0;
 
-    while (ticks_so_far < ticks_to_count) {
-        // Wait for the Output Compare Match A Interrupt to be triggered
+    while (ticks_counted < duration) {
+        // Blocking wait until TCNT0 reaches OCR0A
         while (!(TIFR0 & (1 << OCF0A)));
 
-        // Clear the interrupt flag
+        // Clear the OCF0A flag
         TIFR0 |= (1 << OCF0A);
 
-        ticks_so_far++;
+        ticks_counted++;
     }
 
-    return;
+    return true;
 };

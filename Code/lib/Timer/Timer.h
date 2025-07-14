@@ -20,7 +20,7 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-// Relevant registers and bit positions
+// Relevant registers and bit positions [Section 31]
 #define TIFR0       *((volatile unsigned char*)(0x35))
 
 #define TCCR0A      *((volatile unsigned char*)(0x44))
@@ -56,7 +56,10 @@
 #define PRESCALER_256   0b100
 #define PRESCALER_1024  0b101
 
-void initialize_timer_0(unsigned char prescaler);
-void delay_ms(unsigned long milliseconds);
+#define MILLISECONDS    0
+#define MICROSECONDS    1
+
+void initialize_timer();
+bool blocking_delay(unsigned long milliseconds, unsigned char unit);
 
 #endif

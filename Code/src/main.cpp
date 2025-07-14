@@ -14,15 +14,15 @@ PN532 pn532(NSS, HW_MOSI, HW_MISO, HW_SCK);
 
 void setup() {
   Serial.begin(9600);
-  delay_ms(1000);
+  blocking_delay(1000, MILLISECONDS);
   Serial.println("HI");
 
   pn532.initialize();
-  delay_ms(100);
+  blocking_delay(100, MILLISECONDS);
 
   pn532.SAMConfig();
 
-  initialize_timer_0(PRESCALER_64);
+  initialize_timer();
 }
 
 void loop() {
@@ -47,7 +47,7 @@ void loop() {
         Serial.println("CUDNT READ");
       }
 
-      delay_ms(2000);
+      blocking_delay(2000, MILLISECONDS);
 
       Serial.println("GONNA WRITE");
       
@@ -59,7 +59,7 @@ void loop() {
         Serial.println("CUDNT WRITE");
       }
 
-      delay_ms(1000);
+      blocking_delay(1000, MILLISECONDS);
 
     } else {
       Serial.println("CUDNT AUTH");
@@ -67,5 +67,5 @@ void loop() {
   } else {
     Serial.println("NO");
   }
-  delay_ms(500);
+  blocking_delay(500, MILLISECONDS);
 }

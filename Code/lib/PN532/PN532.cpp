@@ -45,7 +45,7 @@ void PN532::initialize() {
     _spi.initialize(LSB_FIRST);
 
     _NSS.assert(); // Keep the chip deactivated initially
-    delay_ms(5);
+    blocking_delay(5, MILLISECONDS);
 };
 
 bool PN532::send_bytes(unsigned char* bytes, int length) {
@@ -63,7 +63,7 @@ bool PN532::write_frame(unsigned char* frame, int length) {
     
     // NSS assertion and deassertion as described in Section 8.3.5.5 (PN532DS)
     _NSS.deassert();
-    delay_ms(5);
+    blocking_delay(5, MILLISECONDS);
 
     // Start by first sending a DATA_WRITE byte, as required by modified SPI frames [Section 6.2.5 (PN532UM)]
     if (!_spi.send_and_receive_byte(DATA_WRITE, nullptr)) {
@@ -78,7 +78,7 @@ bool PN532::write_frame(unsigned char* frame, int length) {
     }
 
     _NSS.assert();
-    delay_ms(5);
+    blocking_delay(5, MILLISECONDS);
 
     return true;
 };
@@ -101,7 +101,7 @@ bool PN532::read_frame(unsigned char* frame_target, int length, bool start, bool
     if (start) {
         // Deassert NSS to start data read [Section 8.3.5.4 (PN532DS)]
         _NSS.deassert();
-        delay_ms(5);
+        blocking_delay(5, MILLISECONDS);
         
         // Start by sending a DATA_READ byte [Section 6.2.5 (PN532UM)]
         if (!_spi.send_and_receive_byte(DATA_READ, nullptr)) {
@@ -174,7 +174,7 @@ bool PN532::ready_to_respond() {
     while (!(ready) && timeout > 0) {
         _NSS.deassert();
 
-        delay_ms(10);
+        blocking_delay(10, MILLISECONDS);
         timeout -= 10; 
 
         // Poll the Status byte and receive a byte of response [Section 6.2.5.1 (PN532UM)]
