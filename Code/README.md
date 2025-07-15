@@ -199,3 +199,38 @@ Define a `PN532` object to control the PN532, selected over the `NSS` `Pin`, i.e
 
 ### `MIFARE_Classic_PN532` Class
 
+Abstracts away a MIFARE Classic Card detected by the PN532 and provides an interface to issue MIFARE Classic commands to the card over the PN532.
+
+#### Constructor
+`MIFARE_Classic_PN532 card_name(PN532* pn532_pcd, unsigned char* uid, int uid_length)`
+
+`pn532_pcd` is a pointer to the `PN532` that detected and activated the card (the initiator), and `uid` is a pointer to an array of length `uid_length` `unsigned char`s that holds the UID of the card.
+
+#### Methods
+1. `issue_command(MIFARE_Classic_Command mifare_command, MIFARE_Classic_Block block_address, MIFARE_Classic_Data... data)`
+
+    Similar to `PN532.issue_command`; accept and send a MIFARE Classic command to the card, consisting of the command code, an `unsigned char` that goes in `mifare_command` (possible values found in `MIFARE_Classic_Commands.h`), the address of the relevant block in `block_address`, and a comma-separated list of any required parameters/data (all of which must be `unsigned char`s). Returns `bool`: `true` if the command is successfully issued over the PN532.
+
+2. `issue_command_from_array(unsigned char* command_array, int length)`
+
+    Similar to `PN532.issue_command_from_array`. Accept a pointer `command_array` to an array of length `length`, where the first entry is the relevant MIFARE Classic command code, second entry is the address of the relevant block, and remaining entries are any required parameters/data. Returns `bool`: `true` if the command is sucessfully issued over the PN532.
+
+3. `executed_successfully()`
+
+    Check if the command previously issued was executed successfully. Can use in cases where the PN532 does not pass any response received from a MIFARE Classic Card back to the host controller. Returns `bool`: `true` if execution is successful.
+
+4. `receive_command_response(unsigned char* response_buffer, int length)`
+
+    Buffer `length` bytes from the response received from a MIFARE Classic Card to a command previously issued into the array pointed to by `response_buffer`. As per the PN532 User Manual, a response received back from a MIFARE Classic Card will be at most 16 bytes, so `length` is at most 16, and `response_buffer` should be able to hold that many entries. Returns `bool`: `true` if `length` bytes are succesfully buffered.
+
+5. `authenticate_block(unsigned char authentication_type, unsigned char block_address, unsigned char* key)`
+
+    Issue the command to authenticate the block at address `block_address`, using `authentication_type`, which can be either `AUTHENTICATE_KEY_A` or `AUTHENTICATE_KEY_B`, and the authentication key passed in the array pointed to by `key`. Returns `bool`: `true` if the authentication is successful and `false` otherwise.
+
+6. `read_block(unsigned char block_address, unsigned char* contents)`
+
+    Read the contents at the block address specified by `block_address` of a previously authenticate card, into the array pointed to by `contents`. There will be upto 16 bytes in a block, so `contents` should be able to hold upto 16 `unsigned char`s. Returns `bool`: `true` if the block is successfully read.
+
+7. `write_block(unsigned char block_address, unsigned char* contents)`
+
+    Write 16 bytes from the array pointed to by `contents` into the block at the address `block_address` of a previously authenticated MIFARE Classic Card. It is required that `contents` have 16 entries. Returns `bool`: `true` if the writing is successfully completed.
