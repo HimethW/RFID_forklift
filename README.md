@@ -33,6 +33,9 @@ This system enables forklifts to detect RFID-tagged goods during pallet movement
 
 ```
 
+## 🎬 Video Demonstration
+The video demonstration for our RFID reader can be viewed from [here](https://drive.google.com/drive/folders/12UP2MRnLVZfh7hwHNPXHZd3cqawokBNq?usp=sharing)
+
 ## ⚙️ Technologies Used
 
 ### 🖥️ Hardware
