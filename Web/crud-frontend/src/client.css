@@ -1,0 +1,112 @@
+/* client.css */
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+  }
+  
+  .reader-page {
+    text-align: center;
+    padding: 40px;
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    color: white;
+    min-height: 100vh;
+  }
+  
+  .reader-page h1 {
+    font-size: 32px;
+    margin-bottom: 20px;
+  }
+  
+  .reader-page p {
+    font-size: 18px;
+    margin-bottom: 30px;
+  }
+  
+  .reader-page button {
+    padding: 12px 20px;
+    font-size: 16px;
+    background-color: white;
+    color: #2575fc;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+  }
+  
+  .reader-page button:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .popup-overlay {
+    position: fixed;       /* overlay on entire screen */
+    top: 0;                /* full screen */
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* semi-transparent dark background */
+    
+    display: flex;         /* flex container */
+    justify-content: center; /* center horizontally */
+    align-items: center;     /* center vertically */
+    z-index: 9999;          /* on top of everything */
+  }
+
+  
+  .popup, .modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(160, 129, 129, 0.5);
+  }
+  
+  .popup-content, .modal-content {
+    color: #2575fc;
+    font-weight: bold;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    padding: 30px 20px;
+    margin: 150px auto;
+    width: 350px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(99, 112, 103, 0.4);
+    
+  }
+  
+  .tick-image {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 20px;
+    object-fit: contain;
+
+  }
+  
+
+  .popup-content, .modal-content {
+    animation: fadeIn 0.5s ease;
+  }
+  
+  .modal-content input::placeholder {
+    color: #2575fc;
+
+
+    background: rgb(255, 255, 255);
+    padding: 30px 20px;
+    border-radius: 10px;
+
+    border-color: #2575fc;
+    border-width: 5cm;
+
+  }
+
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  
